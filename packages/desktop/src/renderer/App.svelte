@@ -1,0 +1,1302 @@
+<script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
+  import IconDownload from "@tabler/icons-svelte/IconDownload.svelte";
+  import IconSettings from "@tabler/icons-svelte/IconSettings.svelte";
+  import IconFolder from "@tabler/icons-svelte/IconFolder.svelte";
+  import IconPlayerPlay from "@tabler/icons-svelte/IconPlayerPlay.svelte";
+  import IconTrash from "@tabler/icons-svelte/IconTrash.svelte";
+  import IconX from "@tabler/icons-svelte/IconX.svelte";
+  import IconCheck from "@tabler/icons-svelte/IconCheck.svelte";
+  import IconAlertCircle from "@tabler/icons-svelte/IconAlertCircle.svelte";
+  import IconClipboard from "@tabler/icons-svelte/IconClipboard.svelte";
+  import IconVideo from "@tabler/icons-svelte/IconVideo.svelte";
+  import IconMusic from "@tabler/icons-svelte/IconMusic.svelte";
+  import IconCloudDownload from "@tabler/icons-svelte/IconCloudDownload.svelte";
+
+  // State declaration using Svelte 5 Runes
+  let inputUrl = $state('');
+  let isDragging = $state(false);
+  let showSettings = $state(false);
+  let clipboardToast = $state<{ url: string; visible: boolean }>({ url: '', visible: false });
+  let clipboardTimeout: any = null;
+  
+  // Settings State
+  let settings = $state({
+    savePath: '',
+    downloadMode: 'video',
+    videoQuality: '1080',
+    audioFormat: 'best',
+    clipboardMonitoring: true,
+    maxParallelDownloads: 3
+  });
+
+  // Tasks List
+  let tasks = $state<any[]>([]);
+  let activeTab = $state<'all' | 'downloading' | 'completed' | 'failed'>('all');
+
+  // Filter tasks based on active tab using Svelte 5 $derived rune
+  let filteredTasks = $derived(
+    activeTab === 'downloading'
+      ? tasks.filter(t => ['downloading', 'analyzing', 'queued', 'merging'].includes(t.status))
+      : activeTab === 'completed'
+      ? tasks.filter(t => t.status === 'completed')
+      : activeTab === 'failed'
+      ? tasks.filter(t => ['failed', 'cancelled'].includes(t.status))
+      : tasks
+  );
+
+  // Window handles via Electron contextBridge
+  const electron = (window as any).electron;
+
+  onMount(async () => {
+    if (electron) {
+      // Get settings from main
+      settings = await electron.invoke('get-settings');
+      // Get current tasks
+      tasks = await electron.invoke('get-tasks');
+
+      // Listen for updates from main
+      const removeTaskListener = electron.on('task-updated', (updatedTask: any) => {
+        const index = tasks.findIndex(t => t.id === updatedTask.id);
+        if (index !== -1) {
+          tasks[index] = updatedTask;
+        } else {
+          tasks = [updatedTask, ...tasks];
+        }
+      });
+
+      const removeClipboardListener = electron.on('clipboard-detected', (url: string) => {
+        // Show toast
+        clipboardToast = { url, visible: true };
+
+        // Auto hide toast after 8 seconds
+        if (clipboardTimeout) clearTimeout(clipboardTimeout);
+        clipboardTimeout = setTimeout(() => {
+          clipboardToast.visible = false;
+        }, 8000);
+      });
+
+      onDestroy(() => {
+        removeTaskListener();
+        removeClipboardListener();
+        if (clipboardTimeout) clearTimeout(clipboardTimeout);
+      });
+    }
+  });
+
+  async function handleDownload(urlToDownload = inputUrl) {
+    if (!urlToDownload.trim()) return;
+    const cleanUrl = urlToDownload.trim();
+    inputUrl = '';
+    clipboardToast.visible = false;
+    if (clipboardTimeout) clearTimeout(clipboardTimeout);
+    
+    if (electron) {
+      await electron.invoke('download-url', { url: cleanUrl });
+    }
+  }
+
+  async function selectDirectory() {
+    if (electron) {
+      const path = await electron.invoke('select-directory');
+      if (path) {
+        settings.savePath = path;
+        await saveSettings();
+      }
+    }
+  }
+
+  async function saveSettings() {
+    if (electron) {
+      settings = await electron.invoke('save-settings', $state.snapshot(settings));
+    }
+  }
+
+  async function cancelTask(id: string) {
+    if (electron) {
+      await electron.invoke('cancel-task', id);
+    }
+  }
+
+  async function deleteTask(id: string) {
+    if (electron) {
+      await electron.invoke('delete-task', id);
+      tasks = tasks.filter(t => t.id !== id);
+    }
+  }
+
+  async function clearCompleted() {
+    if (electron) {
+      tasks = await electron.invoke('clear-completed');
+    }
+  }
+
+  async function revealInFinder(path: string) {
+    if (electron) {
+      await electron.invoke('reveal-in-finder', path);
+    }
+  }
+
+  async function openFile(path: string) {
+    if (electron) {
+      await electron.invoke('open-file', path);
+    }
+  }
+
+  // Drag & Drop
+  function handleDragOver(e: DragEvent) {
+    e.preventDefault();
+    isDragging = true;
+  }
+
+  function handleDragLeave() {
+    isDragging = false;
+  }
+
+  function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    isDragging = false;
+    const files = e.dataTransfer?.files;
+    const text = e.dataTransfer?.getData('text');
+    
+    if (text) {
+      handleDownload(text);
+    }
+  }
+
+  // Supported platforms config
+  const platforms = [
+    { name: 'YouTube', domain: 'youtube.com', color: '#ff0000', bg: 'rgba(255,0,0,0.15)' },
+    { name: 'Bilibili', domain: 'bilibili.com', color: '#00aeec', bg: 'rgba(0,174,236,0.15)' },
+    { name: 'TikTok', domain: 'tiktok.com', color: '#00f2fe', bg: 'rgba(0,242,254,0.15)' },
+    { name: 'Instagram', domain: 'instagram.com', color: '#e1306c', bg: 'rgba(225,48,108,0.15)' },
+    { name: 'Twitter / X', domain: 'x.com', color: '#ffffff', bg: 'rgba(255,255,255,0.08)' },
+    { name: 'SoundCloud', domain: 'soundcloud.com', color: '#ff5500', bg: 'rgba(255,85,0,0.15)' },
+    { name: 'Reddit', domain: 'reddit.com', color: '#ff4500', bg: 'rgba(255,69,0,0.15)' },
+    { name: 'Vimeo', domain: 'vimeo.com', color: '#1ab7ea', bg: 'rgba(26,183,234,0.15)' },
+    { name: 'Bluesky', domain: 'bsky.app', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+    { name: 'Pinterest', domain: 'pinterest.com', color: '#bd081c', bg: 'rgba(189,8,28,0.15)' },
+    { name: 'Snapchat', domain: 'snapchat.com', color: '#fffc00', bg: 'rgba(255,252,0,0.1)' },
+    { name: 'Twitch', domain: 'twitch.tv', color: '#9146ff', bg: 'rgba(145,70,255,0.15)' },
+    { name: 'Dailymotion', domain: 'dailymotion.com', color: '#0066dc', bg: 'rgba(0,102,220,0.15)' },
+    { name: 'Loom', domain: 'loom.com', color: '#625df5', bg: 'rgba(98,93,245,0.15)' },
+    { name: 'Streamable', domain: 'streamable.com', color: '#0f766e', bg: 'rgba(15,118,110,0.15)' }
+  ];
+
+  // Get service theme colors
+  function getServiceInfo(url: string) {
+    const lower = url.toLowerCase();
+    if (lower.includes('youtube') || lower.includes('youtu.be')) return { name: 'YouTube', color: '#ff0000', bg: 'rgba(255,0,0,0.15)' };
+    if (lower.includes('bilibili') || lower.includes('bili')) return { name: 'Bilibili', color: '#00aeec', bg: 'rgba(0,174,236,0.15)' };
+    if (lower.includes('tiktok')) return { name: 'TikTok', color: '#00f2fe', bg: 'rgba(0,242,254,0.15)' };
+    if (lower.includes('twitter') || lower.includes('x.com')) return { name: 'Twitter/X', color: '#ffffff', bg: 'rgba(255,255,255,0.08)' };
+    if (lower.includes('instagram')) return { name: 'Instagram', color: '#e1306c', bg: 'rgba(225,48,108,0.15)' };
+    if (lower.includes('soundcloud')) return { name: 'SoundCloud', color: '#ff5500', bg: 'rgba(255,85,0,0.15)' };
+    if (lower.includes('reddit')) return { name: 'Reddit', color: '#ff4500', bg: 'rgba(255,69,0,0.15)' };
+    if (lower.includes('vimeo')) return { name: 'Vimeo', color: '#1ab7ea', bg: 'rgba(26,183,234,0.15)' };
+    if (lower.includes('bsky.app') || lower.includes('bluesky')) return { name: 'Bluesky', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' };
+    if (lower.includes('pinterest')) return { name: 'Pinterest', color: '#bd081c', bg: 'rgba(189,8,28,0.15)' };
+    if (lower.includes('snapchat')) return { name: 'Snapchat', color: '#fffc00', bg: 'rgba(255,252,0,0.1)' };
+    if (lower.includes('twitch.tv')) return { name: 'Twitch', color: '#9146ff', bg: 'rgba(145,70,255,0.15)' };
+    if (lower.includes('dailymotion')) return { name: 'Dailymotion', color: '#0066dc', bg: 'rgba(0,102,220,0.15)' };
+    if (lower.includes('loom.com')) return { name: 'Loom', color: '#625df5', bg: 'rgba(98,93,245,0.15)' };
+    if (lower.includes('streamable.com')) return { name: 'Streamable', color: '#0f766e', bg: 'rgba(15,118,110,0.15)' };
+    return { name: 'Web Media', color: '#6366f1', bg: 'rgba(99,102,241,0.15)' };
+  }
+
+  function formatBytes(bytes: number, decimals = 2) {
+    if (!bytes || bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  }
+</script>
+
+<!-- Drag & Drop overlay -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<main 
+  class="app-container"
+  ondragover={handleDragOver}
+  ondragleave={handleDragLeave}
+  ondrop={handleDrop}
+>
+  {#if isDragging}
+    <div class="drop-overlay">
+      <div class="drop-card">
+        <IconCloudDownload size={64} color="var(--accent-primary)" />
+        <h2>Release to Download Link</h2>
+        <p>Drop the website address to queue the download</p>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Header / Window Bar -->
+  <header class="window-header drag-handle">
+    <div class="header-title no-drag">
+      <span class="gradient-text">COBALT</span> DOWNIE
+    </div>
+    <div class="header-actions no-drag">
+      <button class="settings-btn" onclick={() => showSettings = !showSettings} title="Settings">
+        <IconSettings size={18} />
+      </button>
+    </div>
+  </header>
+
+  <!-- URL Paste Section -->
+  <section class="paste-section">
+    <div class="input-glow-wrapper">
+      <input 
+        type="text" 
+        placeholder="Paste video/audio URL here..." 
+        bind:value={inputUrl}
+        onkeydown={(e) => e.key === 'Enter' && handleDownload()}
+        class="url-input"
+      />
+      <button class="download-trigger-btn" onclick={() => handleDownload()} disabled={!inputUrl}>
+        <IconDownload size={18} />
+        <span>Analyze</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Tabs Navigation -->
+  <nav class="tabs-nav">
+    <div class="tabs-list">
+      <button class="tab-btn" class:active={activeTab === 'all'} onclick={() => activeTab = 'all'}>
+        All <span>{tasks.length}</span>
+      </button>
+      <button class="tab-btn" class:active={activeTab === 'downloading'} onclick={() => activeTab = 'downloading'}>
+        Downloading <span>{tasks.filter(t => ['downloading', 'analyzing', 'merging'].includes(t.status)).length}</span>
+      </button>
+      <button class="tab-btn" class:active={activeTab === 'completed'} onclick={() => activeTab = 'completed'}>
+        Completed <span>{tasks.filter(t => t.status === 'completed').length}</span>
+      </button>
+      <button class="tab-btn" class:active={activeTab === 'failed'} onclick={() => activeTab = 'failed'}>
+        Failed <span>{tasks.filter(t => ['failed', 'cancelled'].includes(t.status)).length}</span>
+      </button>
+    </div>
+    {#if tasks.some(t => ['completed', 'failed', 'cancelled'].includes(t.status))}
+      <button class="clear-btn" onclick={clearCompleted}>
+        Clear Finished
+      </button>
+    {/if}
+  </nav>
+
+  <!-- Downloads List Area -->
+  <section class="downloads-area">
+    {#if filteredTasks.length === 0}
+      <div class="empty-state">
+        <div class="empty-icon-pulse">
+          <IconCloudDownload size={40} color="var(--text-muted)" />
+        </div>
+        <h3>No downloads yet</h3>
+        <p>Paste a URL above, drag a link here, or copy a URL to your clipboard.</p>
+        
+        <span class="platforms-title">Supported Sources</span>
+        <div class="platforms-grid">
+          {#each platforms as platform}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div 
+              class="platform-card" 
+              style="--color-glow: {platform.color}; --bg-glow: {platform.bg}"
+              onclick={() => inputUrl = `https://${platform.domain}/`}
+              title="Click to paste brand domain"
+            >
+              <span class="platform-card-name" style="color: {platform.color}">{platform.name}</span>
+              <span class="platform-card-domain">{platform.domain}</span>
+            </div>
+          {/each}
+        </div>
+      </div>
+    {:else}
+      <div class="tasks-list">
+        {#each filteredTasks as task (task.id)}
+          {@const service = getServiceInfo(task.url)}
+          <div class="task-card glass">
+            <!-- Site Icon Column -->
+            <div class="site-icon-col" style="background: {service.bg}; color: {service.color}">
+              {#if settings.downloadMode === 'audio'}
+                <IconMusic size={20} />
+              {:else}
+                <IconVideo size={20} />
+              {/if}
+              <span class="service-label">{service.name}</span>
+            </div>
+
+            <!-- Main Info Column -->
+            <div class="task-info-col">
+              <div class="task-header">
+                <span class="task-title" title={task.title}>{task.title}</span>
+                <span class="task-status-badge {task.status}">{task.status.toUpperCase()}</span>
+              </div>
+
+              <!-- Progress bar -->
+              <div class="progress-bar-wrapper">
+                <div class="progress-bar-bg">
+                  <div 
+                    class="progress-bar-fill {task.status}" 
+                    class:indeterminate={task.status === 'downloading' && task.totalBytes === 0}
+                    style="width: {task.progress * 100}%"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Status line -->
+              <div class="task-status-footer">
+                {#if task.status === 'downloading'}
+                  <span class="stats-text">
+                    {formatBytes(task.downloadedBytes)} / {task.totalBytes > 0 ? formatBytes(task.totalBytes) : 'Unknown Size'}
+                  </span>
+                  <span class="stats-text speed">{task.speed}</span>
+                  <span class="stats-text eta">ETA: {task.eta}</span>
+                {:else if task.status === 'analyzing'}
+                  <span class="stats-text animated-dots">Connecting and analyzing source</span>
+                {:else if task.status === 'merging'}
+                  <span class="stats-text animated-dots font-semibold text-indigo-400">FFmpeg merging video & audio</span>
+                {:else if task.status === 'completed'}
+                  <span class="stats-text success">Download completed</span>
+                {:else if task.status === 'failed'}
+                  <span class="stats-text error" title={task.error}>Failed: {task.error || 'Unknown error'}</span>
+                {:else if task.status === 'cancelled'}
+                  <span class="stats-text warning">Cancelled by user</span>
+                {/if}
+              </div>
+            </div>
+
+            <!-- Actions Column -->
+            <div class="task-actions-col">
+              {#if ['downloading', 'analyzing', 'queued'].includes(task.status)}
+                <button class="action-circle-btn danger" onclick={() => cancelTask(task.id)} title="Cancel">
+                  <IconX size={14} />
+                </button>
+              {:else if task.status === 'completed'}
+                <button class="action-circle-btn success" onclick={() => openFile(task.outputPath)} title="Play File">
+                  <IconPlayerPlay size={14} />
+                </button>
+                <button class="action-circle-btn secondary" onclick={() => revealInFinder(task.outputPath)} title="Show in Finder">
+                  <IconFolder size={14} />
+                </button>
+                <button class="action-circle-btn secondary" onclick={() => deleteTask(task.id)} title="Remove from List">
+                  <IconTrash size={14} />
+                </button>
+              {:else}
+                <button class="action-circle-btn" onclick={() => handleDownload(task.url)} title="Retry">
+                  <IconPlayerPlay size={14} />
+                </button>
+                <button class="action-circle-btn secondary" onclick={() => deleteTask(task.id)} title="Remove from List">
+                  <IconTrash size={14} />
+                </button>
+              {/if}
+            </div>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </section>
+
+  <!-- Clipboard Toast Slide-up -->
+  {#if clipboardToast.visible}
+    <div class="clipboard-toast glass">
+      <div class="toast-content">
+        <IconClipboard size={20} color="var(--accent-primary)" />
+        <div class="toast-text">
+          <h4>Link detected in Clipboard</h4>
+          <p class="truncate">{clipboardToast.url}</p>
+        </div>
+      </div>
+      <div class="toast-actions">
+        <button class="toast-btn secondary" onclick={() => clipboardToast.visible = false}>Ignore</button>
+        <button class="toast-btn primary" onclick={() => handleDownload(clipboardToast.url)}>Download</button>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Settings Slide Panel -->
+  {#if showSettings}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="settings-backdrop" onclick={() => showSettings = false}>
+      <div class="settings-panel glass" onclick={(e) => e.stopPropagation()}>
+        <div class="settings-header">
+          <h3>Preferences</h3>
+          <button class="close-settings" onclick={() => showSettings = false}>
+            <IconX size={18} />
+          </button>
+        </div>
+
+        <div class="settings-body">
+          <!-- Save Path Option -->
+          <div class="setting-item">
+            <label for="save-path">Save Folder</label>
+            <div class="path-selector">
+              <input type="text" readonly value={settings.savePath} id="save-path" class="path-input" />
+              <button class="btn-select-dir" onclick={selectDirectory}>
+                <IconFolder size={16} />
+              </button>
+            </div>
+          </div>
+
+          <!-- Download Mode -->
+          <div class="setting-item">
+            <label for="download-mode">Download Mode</label>
+            <select id="download-mode" bind:value={settings.downloadMode} onchange={saveSettings} class="settings-select">
+              <option value="video">Video + Audio (Best)</option>
+              <option value="audio">Extract Audio Only</option>
+            </select>
+          </div>
+
+          {#if settings.downloadMode === 'video'}
+            <!-- Video Quality -->
+            <div class="setting-item">
+              <label for="video-quality">Max Video Quality</label>
+              <select id="video-quality" bind:value={settings.videoQuality} onchange={saveSettings} class="settings-select">
+                <option value="max">Best Available (2K/4K/8K)</option>
+                <option value="1080">1080p Full HD</option>
+                <option value="720">720p HD</option>
+                <option value="480">480p SD</option>
+                <option value="360">360p</option>
+              </select>
+            </div>
+          {:else}
+            <!-- Audio Format -->
+            <div class="setting-item">
+              <label for="audio-format">Audio Format</label>
+              <select id="audio-format" bind:value={settings.audioFormat} onchange={saveSettings} class="settings-select">
+                <option value="best">Best Quality (m4a/mp3)</option>
+                <option value="mp3">MP3</option>
+                <option value="ogg">Ogg Vorbis</option>
+                <option value="wav">Wav Lossless</option>
+                <option value="opus">Opus</option>
+              </select>
+            </div>
+          {/if}
+
+          <!-- Clipboard monitor -->
+          <div class="setting-item checkbox-item">
+            <input type="checkbox" id="clip-monitor" bind:checked={settings.clipboardMonitoring} onchange={saveSettings} />
+            <label for="clip-monitor">Clipboard Link Monitoring</label>
+          </div>
+        </div>
+
+        <div class="settings-footer">
+          <p class="settings-app-version">Cobalt Downie v1.0.0 • Powered by Cobalt Core</p>
+        </div>
+      </div>
+    </div>
+  {/if}
+</main>
+
+<style>
+  .app-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-sizing: border-box;
+  }
+
+  /* Drop overlay */
+  .drop-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .drop-card {
+    background: var(--bg-card);
+    border: 2px dashed var(--accent-primary);
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    width: 80%;
+    max-width: 400px;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .drop-card h2 {
+    font-family: var(--font-display);
+    margin-top: 20px;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .drop-card p {
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  /* Window Header */
+  .window-header {
+    height: 52px;
+    padding-top: 12px; /* Margin for Traffic Lights on macOS */
+    padding-left: 80px; /* Leave space for macOS Traffic Lights */
+    padding-right: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .header-title {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text-primary);
+  }
+
+  .gradient-text {
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .settings-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .settings-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+  }
+
+  /* URL Paste Section */
+  .paste-section {
+    padding: 24px 20px 16px 20px;
+  }
+
+  .input-glow-wrapper {
+    display: flex;
+    align-items: center;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 4px 4px 4px 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .input-glow-wrapper:focus-within {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.3), inset 0 1px 2px rgba(0,0,0,0.4);
+  }
+
+  .url-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 14px;
+    height: 38px;
+  }
+
+  .url-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .download-trigger-btn {
+    background: var(--accent-gradient);
+    border: none;
+    color: white;
+    padding: 0 18px;
+    height: 38px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  }
+
+  .download-trigger-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  }
+
+  .download-trigger-btn:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .download-trigger-btn:disabled {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  /* Tabs Nav */
+  .tabs-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    margin-bottom: 12px;
+  }
+
+  .tabs-list {
+    display: flex;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 3px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tab-btn.active {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+  }
+
+  .tab-btn span {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    color: var(--text-secondary);
+  }
+
+  .tab-btn.active span {
+    background: var(--accent-gradient);
+    color: white;
+  }
+
+  .clear-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .clear-btn:hover {
+    color: var(--text-secondary);
+  }
+
+  /* Downloads Area */
+  .downloads-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px 20px 20px;
+  }
+
+  .tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Task Card */
+  .task-card {
+    border-radius: 14px;
+    display: flex;
+    overflow: hidden;
+    height: 94px;
+  }
+
+  .site-icon-col {
+    width: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid var(--border-color);
+    padding: 0 10px;
+  }
+
+  .service-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 6px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+  }
+
+  .task-info-col {
+    flex: 1;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+
+  .task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .task-title {
+    font-size: 13.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+
+  .task-status-badge {
+    font-size: 8px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  .task-status-badge.queued { background: rgba(255,255,255,0.08); color: var(--text-secondary); }
+  .task-status-badge.analyzing { background: var(--warning-gradient); color: white; }
+  .task-status-badge.downloading { background: var(--accent-gradient); color: white; }
+  .task-status-badge.merging { background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%); color: white; }
+  .task-status-badge.completed { background: var(--success-gradient); color: white; }
+  .task-status-badge.failed { background: var(--danger-gradient); color: white; }
+  .task-status-badge.cancelled { background: rgba(255,255,255,0.08); color: var(--text-muted); }
+
+  /* Progress bar styles */
+  .progress-bar-wrapper {
+    margin: 8px 0;
+  }
+
+  .progress-bar-bg {
+    height: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.15s linear;
+    background: var(--accent-gradient);
+  }
+
+  .progress-bar-fill.analyzing {
+    background: var(--warning-gradient);
+    animation: pulse 1.5s infinite alternate;
+  }
+
+  .progress-bar-fill.indeterminate {
+    background: var(--accent-gradient);
+    animation: pulse 1.5s infinite alternate;
+  }
+
+  .progress-bar-fill.merging {
+    background: linear-gradient(90deg, #a855f7, #6366f1, #a855f7);
+    background-size: 200% 100%;
+    animation: moveGrad 2s linear infinite;
+  }
+
+  .progress-bar-fill.completed {
+    background: var(--success-gradient);
+  }
+
+  .progress-bar-fill.failed {
+    background: var(--danger-gradient);
+  }
+
+  .progress-bar-fill.cancelled {
+    background: rgba(255,255,255,0.15);
+  }
+
+  @keyframes pulse {
+    0% { opacity: 0.6; width: 20%; }
+    100% { opacity: 1; width: 60%; }
+  }
+
+  @keyframes moveGrad {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+
+  .task-status-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .stats-text {
+    display: inline-block;
+  }
+
+  .stats-text.speed {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .stats-text.success { color: #10b981; }
+  .stats-text.error { color: #ef4444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
+  .stats-text.warning { color: var(--text-muted); }
+
+  .animated-dots::after {
+    content: '...';
+    display: inline-block;
+    width: 12px;
+    animation: dots 1.5s infinite steps(4);
+    text-align: left;
+  }
+
+  @keyframes dots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+  }
+
+  /* Actions column */
+  .task-actions-col {
+    width: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding-right: 12px;
+  }
+
+  .action-circle-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .action-circle-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+    transform: scale(1.05);
+  }
+
+  .action-circle-btn.danger:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+
+  .action-circle-btn.success:hover {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+
+  /* Empty State */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 60px 40px;
+    height: 320px;
+  }
+
+  .empty-icon-pulse {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .empty-state h3 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    margin: 0 0 8px 0;
+    font-weight: 600;
+  }
+
+  .empty-state p {
+    color: var(--text-secondary);
+    font-size: 13px;
+    max-width: 320px;
+    margin: 0 0 32px 0;
+    line-height: 1.5;
+  }
+
+  .platform-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    max-width: 400px;
+  }
+
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    color: var(--color);
+    background: var(--bg);
+    border: 1px solid rgba(255, 255, 255, 0.02);
+  }
+
+  /* Clipboard Toast */
+  .clipboard-toast {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    z-index: 500;
+    box-shadow: var(--shadow-lg);
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    background: rgba(22, 22, 33, 0.95);
+    border-color: rgba(99, 102, 241, 0.3);
+  }
+
+  @keyframes slideUp {
+    0% { transform: translateY(40px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  .toast-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .toast-text {
+    overflow: hidden;
+  }
+
+  .toast-text h4 {
+    margin: 0 0 2px 0;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  .toast-text p {
+    margin: 0;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .toast-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .toast-btn {
+    border: none;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .toast-btn.primary {
+    background: var(--accent-gradient);
+    color: white;
+  }
+
+  .toast-btn.secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+  }
+
+  .toast-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  /* Settings Panel Overlay */
+  .settings-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 900;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .settings-panel {
+    width: 320px;
+    height: 100%;
+    background: rgba(20, 20, 30, 0.85);
+    border-left: 1px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideIn {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(0); }
+  }
+
+  .settings-header {
+    height: 52px;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .settings-header h3 {
+    font-family: var(--font-display);
+    font-size: 15px;
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .close-settings {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .close-settings:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+  }
+
+  .settings-body {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+  }
+
+  .setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .setting-item label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+  }
+
+  .path-selector {
+    display: flex;
+    gap: 6px;
+  }
+
+  .path-input {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    padding: 0 10px;
+    font-size: 12px;
+    height: 32px;
+    outline: none;
+    text-overflow: ellipsis;
+  }
+
+  .btn-select-dir {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-select-dir:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .settings-select {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    padding: 0 10px;
+    font-size: 12px;
+    height: 32px;
+    outline: none;
+  }
+
+  .checkbox-item {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+
+  .checkbox-item input {
+    margin: 0;
+    cursor: pointer;
+  }
+
+  .checkbox-item label {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: none;
+    color: var(--text-primary);
+    letter-spacing: 0;
+    cursor: pointer;
+  }
+
+  .settings-footer {
+    padding: 20px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .settings-app-version {
+    margin: 0;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  /* Supported platforms grid */
+  .platforms-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-top: 24px;
+    margin-bottom: 14px;
+  }
+
+  .platforms-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+    max-width: 460px;
+    margin-top: 4px;
+  }
+
+  .platform-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 4px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.02);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  .platform-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--color-glow);
+    box-shadow: 0 4px 12px var(--bg-glow);
+    transform: translateY(-1px);
+  }
+
+  .platform-card:active {
+    transform: translateY(0);
+  }
+
+  .platform-card-name {
+    font-size: 11.5px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .platform-card-domain {
+    font-size: 8.5px;
+    color: var(--text-muted);
+    letter-spacing: 0.2px;
+  }
+</style>

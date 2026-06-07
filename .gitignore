@@ -1,0 +1,72 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+web_modules/
+
+# Build and Output directories
+dist/
+dist-electron/
+release/
+out/
+build/
+bin/
+obj/
+.svelte-kit/
+.next/
+.nuxt/
+.docusaurus/
+.cache/
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment and Local Configuration
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env.local
+.envfile
+.env?
+
+# Editor and IDE configurations
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+
+# Diagnostic and coverage reports
+coverage/
+.nyc_output/
+.clinic/
+
+# Package manager files
+.pnpm-debug.log
+.yarn-state/
+.yarn/
+.pnp.*
+
+# Temporary / Scratch directories
+scratch/
+tmp/
+temp/
