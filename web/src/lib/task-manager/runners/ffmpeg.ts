@@ -7,7 +7,9 @@ import { pipelineTaskDone, itemError, queue } from "$lib/state/task-manager/queu
 import type { FileInfo } from "$lib/types/libav";
 import type { CobaltQueue } from "$lib/types/queue";
 
-let startAttempts = 0;
+// Per-pipeline retry counter (keyed by parentId) to avoid
+// sharing state across concurrent ffmpeg workers.
+const startAttempts = new Map<string, number>();
 
 export const runFFmpegWorker = async (
     workerId: string,
@@ -21,28 +23,35 @@ export const runFFmpegWorker = async (
 ) => {
     const worker = new FFmpegWorker();
 
-    // sometimes chrome refuses to start libav wasm,
-    // so we check if it started, try 10 more times if not, and kill self if it still doesn't work
-    // TODO: fix the underlying issue because this is ridiculous
+    // Chrome sometimes refuses to start libav WASM workers on the first attempt.
+    // This is a known Chromium bug (WASM/SharedArrayBuffer initialization race).
+    // We retry the worker startup up to 10 times per pipeline before giving up.
 
-    if (resetStartCounter) startAttempts = 0;
+    if (resetStartCounter) startAttempts.set(parentId, 0);
 
     let bumpAttempts = 0;
-    const startCheck = setInterval(async () => {
+    const startCheck = setInterval(() => {
         bumpAttempts++;
 
         if (bumpAttempts === 10) {
-            startAttempts++;
-            if (startAttempts <= 10) {
+            const attempts = (startAttempts.get(parentId) || 0) + 1;
+            startAttempts.set(parentId, attempts);
+
+            if (attempts <= 10) {
                 killWorker(worker, unsubscribe, startCheck);
-                return await runFFmpegWorker(
+                // fire-and-forget retry via a new worker instance
+                runFFmpegWorker(
                     workerId, parentId,
                     files, args, output,
                     variant, yesthreads
-                );
+                ).catch((err) => {
+                    console.error(`ffmpeg worker retry #${attempts} failed:`, err);
+                    itemError(parentId, workerId, "queue.worker_didnt_start");
+                });
             } else {
                 killWorker(worker, unsubscribe, startCheck);
-                return itemError(parentId, workerId, "queue.worker_didnt_start");
+                startAttempts.delete(parentId); // cleanup
+                itemError(parentId, workerId, "queue.worker_didnt_start");
             }
         }
     }, 500);

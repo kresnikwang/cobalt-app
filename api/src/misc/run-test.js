@@ -48,6 +48,30 @@ export async function runTest(url, params, expect) {
     }
 
     if (result.body.status === 'tunnel') {
-        // TODO: stream testing
+        try {
+            const tunnelUrl = new URL(result.body.url);
+            const requiredParams = ['id', 'exp', 'sig', 'sec', 'iv'];
+            const missing = requiredParams.filter(p => !tunnelUrl.searchParams.has(p));
+            if (missing.length) {
+                error.push(`tunnel URL missing params: ${missing.join(', ')}`);
+            }
+
+            // verify the stream data was stored by checking it can be retrieved
+            const { verifyStream } = await import('../stream/manage.js');
+            const id = tunnelUrl.searchParams.get('id');
+            const hmac = tunnelUrl.searchParams.get('sig');
+            const exp = tunnelUrl.searchParams.get('exp');
+            const secret = tunnelUrl.searchParams.get('sec');
+            const iv = tunnelUrl.searchParams.get('iv');
+
+            if (id && hmac && exp && secret && iv) {
+                const streamResult = await verifyStream(id, hmac, exp, secret, iv);
+                if (!streamResult || streamResult.status) {
+                    error.push(`tunnel verification failed: status ${streamResult?.status || 'unknown'}`);
+                }
+            }
+        } catch (e) {
+            error.push(`tunnel validation error: ${e.message || e}`);
+        }
     }
 }

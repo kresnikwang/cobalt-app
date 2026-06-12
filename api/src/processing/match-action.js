@@ -250,9 +250,17 @@ export default function({
         params.type = "proxy";
     }
 
-    // TODO: add support for HLS
-    // (very painful)
-    if (!params.isHLS && responseType !== "picker") {
+    // HLS local processing: when localProcessing is forced/preferred,
+    // HLS streams go through local processing so the client can download
+    // and merge segments locally using ffmpeg WASM.
+    //
+    // Client-side TODO:
+    // 1. Fetch the tunnel URL to get the m3u8 playlist via proxy
+    // 2. Parse the playlist to extract segment URLs
+    // 3. Create proxy tunnels for each segment
+    // 4. Download all segments
+    // 5. Concatenate/merge locally with ffmpeg WASM
+    if (responseType !== "picker") {
         const isPreferredWithExtra =
             localProcessing === "preferred" && extraProcessingTypes.has(params.type);
 

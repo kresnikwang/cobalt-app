@@ -103,7 +103,19 @@ const ffmpeg = async (
         } catch (e) {
             console.error("error from the ffmpeg worker @ render:");
             console.error(e);
-            // TODO: more granular error codes
+
+            if (e instanceof Error) {
+                const msg = e.message?.toLowerCase() || '';
+                if (msg.includes('out of memory')) {
+                    return error("queue.ffmpeg.out_of_memory");
+                }
+                if (msg.includes('codec') || msg.includes('encoder') || msg.includes('decoder')) {
+                    return error("queue.ffmpeg.codec_error");
+                }
+                if (msg.includes('format') || msg.includes('muxer') || msg.includes('demuxer')) {
+                    return error("queue.ffmpeg.format_error");
+                }
+            }
             return error("queue.ffmpeg.crashed");
         }
 

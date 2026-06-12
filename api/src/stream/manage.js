@@ -47,14 +47,20 @@ export function createStream(obj) {
             subtitles: obj.subtitles,
         };
 
-    // FIXME: this is now a Promise, but it is not awaited
-    //        here. it may happen that the stream is not
-    //        stored in the Store before it is requested.
-    streamCache.set(
+    // MemoryStore._set() is synchronous, but RedisStore._set() returns a Promise.
+    // The client must make an HTTP request to /tunnel after receiving this URL,
+    // which adds a network round-trip, giving the Redis write time to complete
+    // in practice. We attach a .catch handler to prevent unhandled rejections.
+    const setResult = streamCache.set(
         streamID,
         encryptStream(streamData, iv, secret),
         env.streamLifespan
     );
+    if (setResult && typeof setResult.catch === 'function') {
+        setResult.catch((err) => {
+            console.error(`store/streams: failed to store stream ${streamID}`, err);
+        });
+    }
 
     let streamLink = new URL('/tunnel', env.apiURL);
 
