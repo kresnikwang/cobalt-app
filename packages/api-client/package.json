@@ -13,12 +13,21 @@
             "require": "./dist/index.cjs"
         }
     },
-    "files": ["dist"],
+    "files": [
+        "dist"
+    ],
     "scripts": {
         "build": "tsup src/index.ts --format esm,cjs --dts --clean",
-        "dev": "tsup src/index.ts --format esm,cjs --dts --watch"
+        "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+        "test:unit": "vitest run",
+        "test:watch": "vitest"
     },
-    "keywords": ["cobalt", "media-downloader", "api-client", "sdk"],
+    "keywords": [
+        "cobalt",
+        "media-downloader",
+        "api-client",
+        "sdk"
+    ],
     "author": "imput <meow@imput.net>",
     "license": "MIT",
     "repository": {
@@ -29,6 +38,7 @@
     "devDependencies": {
         "prettier": "3.7.4",
         "tsup": "^8.5.1",
-        "typescript": "^5.9.3"
+        "typescript": "^5.9.3",
+        "vitest": "^4.1.8"
     }
 }

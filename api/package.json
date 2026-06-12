@@ -11,6 +11,8 @@
     "scripts": {
         "start": "node src/cobalt",
         "test": "node src/util/test",
+        "test:unit": "vitest run",
+        "test:watch": "vitest",
         "token:jwt": "node src/util/generate-jwt-secret"
     },
     "repository": {
@@ -47,5 +49,8 @@
         "freebind": "^0.2.3",
         "rate-limit-redis": "^4.3.1",
         "redis": "4.7.1"
+    },
+    "devDependencies": {
+        "vitest": "^4.1.8"
     }
 }
