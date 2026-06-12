@@ -69,9 +69,8 @@ const printHeader = (service, padLen) => {
     console.log(service + '='.repeat(50));
 }
 
-// TODO: remove env.externalProxy in a future version
 setGlobalDispatcher(
-    new EnvHttpProxyAgent({ httpProxy: env.externalProxy || undefined })
+    new EnvHttpProxyAgent()
 );
 
 env.streamLifespan = 10000;

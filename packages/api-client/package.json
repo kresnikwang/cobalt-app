@@ -1,12 +1,31 @@
 {
     "name": "@imput/cobalt-client",
     "version": "0.0.1",
-    "description": "",
-    "main": "index.js",
-    "scripts": {},
-    "keywords": [],
+    "description": "TypeScript SDK for the Cobalt API — save what you love",
+    "type": "module",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "files": ["dist"],
+    "scripts": {
+        "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+        "dev": "tsup src/index.ts --format esm,cjs --dts --watch"
+    },
+    "keywords": ["cobalt", "media-downloader", "api-client", "sdk"],
     "author": "imput <meow@imput.net>",
     "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/imputnet/cobalt.git",
+        "directory": "packages/api-client"
+    },
     "devDependencies": {
         "prettier": "3.7.4",
         "tsup": "^8.5.1",

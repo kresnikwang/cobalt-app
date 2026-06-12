@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main, current]
+  pull_request:
+    branches: [main, current]
+
+jobs:
+  # --- API: build & integration test ---
+  api:
+    name: API (lint + test)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['20', '22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @imput/cobalt-api test
+        env:
+          TEST_IGNORE_SERVICES: bilibili,instagram,facebook,youtube,vk,twitter,reddit
+
+  # --- Web: type-check & build ---
+  web:
+    name: Web (type-check + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @imput/cobalt-web check
+      - run: pnpm --filter @imput/cobalt-web build
+
+  # --- Desktop: build (macOS only) ---
+  desktop:
+    name: Desktop (build)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @imput/cobalt-desktop build
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: CobaltDownie-macOS-arm64
+          path: packages/desktop/release/*.dmg

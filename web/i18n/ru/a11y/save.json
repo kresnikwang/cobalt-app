@@ -1,12 +1,13 @@
 {
     "link_area": "поле ввода ссылки",
-    "clear_input": "очистить поле ввода",
+    "link_area.turnstile": "поле ввода ссылки. проверка, что ты не робот.",
+    "clear_input": "очистить ввод",
     "download": "скачать",
-    "download.think": "обрабатываю ссылку...",
-    "download.check": "проверяю загрузку...",
+    "download.think": "обработка ссылки...",
+    "download.check": "проверка загрузки...",
     "download.done": "загрузка завершена",
     "download.error": "ошибка загрузки",
-    "link_area.turnstile": "поле ввода ссылки. проверяю, что ты не робот.",
-    "tutorial.shortcut.photos": "добавить команду \"в фото\"",
-    "tutorial.shortcut.files": "добавить команду \"в файлы\""
+
+    "tutorial.shortcut.photos": "добавить быструю команду для фото",
+    "tutorial.shortcut.files": "добавить быструю команду для файлов"
 }

@@ -116,7 +116,8 @@ export function createResponse(responseType, responseData) {
 }
 
 export function normalizeRequest(request) {
-    // TODO: remove after backwards compatibility period
+    // Backwards compatibility: convert boolean localProcessing to string
+    // (can be removed when all clients have migrated — targeting v12+)
     if ("localProcessing" in request && typeof request.localProcessing === "boolean") {
         request.localProcessing = request.localProcessing ? "preferred" : "disabled";
     }

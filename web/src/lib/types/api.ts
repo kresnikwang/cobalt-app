@@ -109,11 +109,14 @@ export type CobaltServerInfo = {
     }
 }
 
-// TODO: strict partial
-// this allows for extra properties, which is not ideal,
-// but i couldn't figure out how to make a strict partial :(
+type StrictPartial<T, K extends keyof T = keyof T> = {
+    [P in K]?: T[P];
+};
+
+type CobaltSaveKeys = keyof Omit<CobaltSettings['save'], 'savingMethod'>;
+
 export type CobaltSaveRequestBody =
-    { url: string } & Partial<Omit<CobaltSettings['save'], 'savingMethod'>>;
+    { url: string } & StrictPartial<CobaltSettings['save'], CobaltSaveKeys>;
 
 export type CobaltSessionResponse = CobaltSession | CobaltErrorResponse;
 export type CobaltServerInfoResponse = CobaltServerInfo | CobaltErrorResponse;

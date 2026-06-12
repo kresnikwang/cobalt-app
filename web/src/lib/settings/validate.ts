@@ -25,9 +25,13 @@ function validateTypes(input: unknown, reference = defaultSettings as unknown) {
         return input === reference;
 
     if (Array.isArray(reference)) {
-        // TODO: we dont expect the reference array to hold any
-        //       elements, but we should at maybe check whether
-        //       the input array types are all matching.
+        // Validate each element in the input array against the
+        // reference element type (or the only element if array is empty)
+        if (!Array.isArray(input)) return false;
+        const refElement = reference[0];
+        if (refElement !== undefined) {
+            return input.every(item => validateAgainstDefault(item, refElement));
+        }
         return true;
     }
 

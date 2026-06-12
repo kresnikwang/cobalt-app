@@ -6,6 +6,7 @@
 
     "auth.key.missing": "an access key is required to use this processing instance but it's missing. add it in instance settings!",
     "auth.key.not_api_key": "an access key is required to use this processing instance but it's missing. add it in instance settings!",
+    "auth.not_configured": "authentication is not configured on this processing instance. you can still use it without an access key!",
 
     "auth.key.invalid": "the access key is invalid. reset it in instance settings and use a proper one!",
     "auth.key.not_found": "the access key you used couldn't be found. are you sure this instance has your key?",

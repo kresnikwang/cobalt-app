@@ -13,13 +13,21 @@
     let draggedOver = false;
     let files: FileList | undefined;
 
+    const remuxableTypes = new Set([
+        // video
+        'video/mp4', 'video/webm', 'video/x-matroska', 'video/quicktime',
+        'video/x-msvideo', 'video/MP2T', 'video/ogg',
+        // audio
+        'audio/mpeg', 'audio/mp4', 'audio/ogg', 'audio/opus',
+        'audio/webm', 'audio/wav', 'audio/aac', 'audio/flac',
+    ]);
+
     const remux = async () => {
         if (!files) return;
 
         for (let i = 0; i < files?.length; i++) {
             const type = files[i].type;
-            // TODO: stricter type limits?
-            if (type.startsWith("video/") || type.startsWith("audio/")) {
+            if (remuxableTypes.has(type) || type.startsWith("video/") || type.startsWith("audio/")) {
                 createRemuxPipeline(files[i]);
             }
         }

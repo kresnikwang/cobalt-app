@@ -163,7 +163,7 @@ function createWindow() {
     backgroundColor: '#00000000',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      sandbox: true,
       contextIsolation: true,
     }
   });
@@ -432,9 +432,11 @@ async function runDownloadTask(task: DownloadTask, settings: Settings) {
     }
 
     // Avoid overwriting existing files: add numeric suffix
-    let outputPath  = path.join(settings.savePath, filename);
-    const ext       = path.extname(filename);
-    const base      = path.basename(filename, ext);
+    // Sanitize filename to prevent path traversal (strip any directory components)
+    const safeFilename = path.basename(filename);
+    let outputPath  = path.join(settings.savePath, safeFilename);
+    const ext       = path.extname(safeFilename);
+    const base      = path.basename(safeFilename, ext);
     let   dupIndex  = 1;
     while (fs.existsSync(outputPath)) {
       outputPath = path.join(settings.savePath, `${base} (${dupIndex++})${ext}`);

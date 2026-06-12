@@ -1,5 +1,5 @@
 {
-    "picker.item.photo": "превью фотографии",
-    "picker.item.video": "превью видео",
-    "picker.item.gif": "превью gif"
+    "picker.item.photo": "миниатюра фото",
+    "picker.item.video": "миниатюра видео",
+    "picker.item.gif": "миниатюра гифки"
 }
