@@ -158,18 +158,38 @@ export const createSavePipeline = (
     const parentId = oldTaskId || uuid();
     const pipeline: CobaltPipelineItem[] = [];
 
-    // reverse is needed for audio (second item) to be downloaded first
-    const tunnels = info.tunnel.reverse();
+    if (info.isHLS) {
+        // --- HLS pipeline ---
+        // Single hls worker that fetches the playlist, parses segments,
+        // downloads all segments, and concatenates them into one file.
+        const hlsTunnel = info.tunnel[0];
+        if (!hlsTunnel) {
+            return showError("pipeline.missing_response_data");
+        }
 
-    for (const tunnel of tunnels) {
         pipeline.push({
-            worker: "fetch",
+            worker: "hls",
             workerId: uuid(),
             parentId,
             workerArgs: {
-                url: tunnel,
+                tunnelUrl: hlsTunnel,
             },
         });
+    } else {
+        // --- Standard pipeline (non-HLS) ---
+        // reverse is needed for audio (second item) to be downloaded first
+        const tunnels = info.tunnel.reverse();
+
+        for (const tunnel of tunnels) {
+            pipeline.push({
+                worker: "fetch",
+                workerId: uuid(),
+                parentId,
+                workerArgs: {
+                    url: tunnel,
+                },
+            });
+        }
     }
 
     if (info.type !== "proxy") {

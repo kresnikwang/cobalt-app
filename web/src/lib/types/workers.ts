@@ -38,6 +38,12 @@ type CobaltFetchPipelineItem = CobaltPipelineItemBase & {
     workerArgs: { url: string },
 }
 
+type CobaltHLSPipelineItem = CobaltPipelineItemBase & {
+    worker: "hls",
+    workerArgs: { tunnelUrl: string },
+}
+
 export type CobaltPipelineItem = CobaltEncodePipelineItem
                                | CobaltRemuxPipelineItem
-                               | CobaltFetchPipelineItem;
+                               | CobaltFetchPipelineItem
+                               | CobaltHLSPipelineItem;

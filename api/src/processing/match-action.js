@@ -251,15 +251,12 @@ export default function({
     }
 
     // HLS local processing: when localProcessing is forced/preferred,
-    // HLS streams go through local processing so the client can download
-    // and merge segments locally using ffmpeg WASM.
-    //
-    // Client-side TODO:
-    // 1. Fetch the tunnel URL to get the m3u8 playlist via proxy
-    // 2. Parse the playlist to extract segment URLs
-    // 3. Create proxy tunnels for each segment
-    // 4. Download all segments
-    // 5. Concatenate/merge locally with ffmpeg WASM
+    // HLS streams go through local processing. The client-side pipeline:
+    // 1. HLS worker fetches the m3u8 playlist via the proxy tunnel URL
+    // 2. Parses segment URLs from the playlist
+    // 3. Downloads all segments sequentially
+    // 4. Concatenates segments into a single MPEG-TS file
+    // 5. FFmpeg WASM worker remuxes the concatenated file to the target format
     if (responseType !== "picker") {
         const isPreferredWithExtra =
             localProcessing === "preferred" && extraProcessingTypes.has(params.type);
