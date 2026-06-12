@@ -12,11 +12,16 @@
   import IconVideo from "@tabler/icons-svelte/IconVideo.svelte";
   import IconMusic from "@tabler/icons-svelte/IconMusic.svelte";
   import IconCloudDownload from "@tabler/icons-svelte/IconCloudDownload.svelte";
+  import IconRepeat from "@tabler/icons-svelte/IconRepeat.svelte";
+  import IconLanguage from "@tabler/icons-svelte/IconLanguage.svelte";
+
+  import { t, getLocale, setLocale } from './i18n';
 
   // State declaration using Svelte 5 Runes
   let inputUrl = $state('');
   let isDragging = $state(false);
   let showSettings = $state(false);
+  let currentPage = $state<'home' | 'remux'>('home');
   let clipboardToast = $state<{ url: string; visible: boolean }>({ url: '', visible: false });
   let clipboardTimeout: any = null;
   
@@ -202,7 +207,7 @@
     if (lower.includes('dailymotion')) return { name: 'Dailymotion', color: '#0066dc', bg: 'rgba(0,102,220,0.15)' };
     if (lower.includes('loom.com')) return { name: 'Loom', color: '#625df5', bg: 'rgba(98,93,245,0.15)' };
     if (lower.includes('streamable.com')) return { name: 'Streamable', color: '#0f766e', bg: 'rgba(15,118,110,0.15)' };
-    return { name: 'Web Media', color: '#6366f1', bg: 'rgba(99,102,241,0.15)' };
+    return { name: t('service.unknown'), color: '#6366f1', bg: 'rgba(99,102,241,0.15)' };
   }
 
   function formatBytes(bytes: number, decimals = 2) {
@@ -227,8 +232,8 @@
     <div class="drop-overlay">
       <div class="drop-card">
         <IconCloudDownload size={64} color="var(--accent-primary)" />
-        <h2>Release to Download Link</h2>
-        <p>Drop the website address to queue the download</p>
+        <h2>{t('drop.title')}</h2>
+        <p>{t('drop.subtitle')}</p>
       </div>
     </div>
   {/if}
@@ -238,8 +243,18 @@
     <div class="header-title no-drag">
       <span class="gradient-text">COBALT</span> DOWNIE
     </div>
+    <nav class="header-nav no-drag">
+      <button class="nav-btn" class:active={currentPage === 'home'} onclick={() => currentPage = 'home'} title={t('nav.home')}>
+        <IconDownload size={16} />
+        <span>{t('nav.home')}</span>
+      </button>
+      <button class="nav-btn" class:active={currentPage === 'remux'} onclick={() => currentPage = 'remux'} title={t('nav.remux')}>
+        <IconRepeat size={16} />
+        <span>{t('nav.remux')}</span>
+      </button>
+    </nav>
     <div class="header-actions no-drag">
-      <button class="settings-btn" onclick={() => showSettings = !showSettings} title="Settings">
+      <button class="settings-btn" onclick={() => showSettings = !showSettings} title={t('settings.title')}>
         <IconSettings size={18} />
       </button>
     </div>
@@ -250,41 +265,43 @@
     <div class="input-glow-wrapper">
       <input 
         type="text" 
-        placeholder="Paste video/audio URL here..." 
+        placeholder={t('input.placeholder')}
         bind:value={inputUrl}
         onkeydown={(e) => e.key === 'Enter' && handleDownload()}
         class="url-input"
       />
       <button class="download-trigger-btn" onclick={() => handleDownload()} disabled={!inputUrl}>
         <IconDownload size={18} />
-        <span>Analyze</span>
+        <span>{t('analyze')}</span>
       </button>
     </div>
   </section>
 
+  {#if currentPage === 'home'}
   <!-- Tabs Navigation -->
   <nav class="tabs-nav">
     <div class="tabs-list">
       <button class="tab-btn" class:active={activeTab === 'all'} onclick={() => activeTab = 'all'}>
-        All <span>{tasks.length}</span>
+        {t('tabs.all')} <span>{tasks.length}</span>
       </button>
       <button class="tab-btn" class:active={activeTab === 'downloading'} onclick={() => activeTab = 'downloading'}>
-        Downloading <span>{tasks.filter(t => ['downloading', 'analyzing', 'merging'].includes(t.status)).length}</span>
+        {t('tabs.downloading')} <span>{tasks.filter(t => ['downloading', 'analyzing', 'merging'].includes(t.status)).length}</span>
       </button>
       <button class="tab-btn" class:active={activeTab === 'completed'} onclick={() => activeTab = 'completed'}>
-        Completed <span>{tasks.filter(t => t.status === 'completed').length}</span>
+        {t('tabs.completed')} <span>{tasks.filter(t => t.status === 'completed').length}</span>
       </button>
       <button class="tab-btn" class:active={activeTab === 'failed'} onclick={() => activeTab = 'failed'}>
-        Failed <span>{tasks.filter(t => ['failed', 'cancelled'].includes(t.status)).length}</span>
+        {t('tabs.failed')} <span>{tasks.filter(t => ['failed', 'cancelled'].includes(t.status)).length}</span>
       </button>
     </div>
     {#if tasks.some(t => ['completed', 'failed', 'cancelled'].includes(t.status))}
       <button class="clear-btn" onclick={clearCompleted}>
-        Clear Finished
+        {t('tabs.clear_finished')}
       </button>
     {/if}
   </nav>
 
+  {#if currentPage === 'home'}
   <!-- Downloads List Area -->
   <section class="downloads-area">
     {#if filteredTasks.length === 0}
@@ -292,10 +309,10 @@
         <div class="empty-icon-pulse">
           <IconCloudDownload size={40} color="var(--text-muted)" />
         </div>
-        <h3>No downloads yet</h3>
-        <p>Paste a URL above, drag a link here, or copy a URL to your clipboard.</p>
+        <h3>{t('empty.title')}</h3>
+        <p>{t('empty.subtitle')}</p>
         
-        <span class="platforms-title">Supported Sources</span>
+        <span class="platforms-title">{t('empty.sources')}</span>
         <div class="platforms-grid">
           {#each platforms as platform}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -331,7 +348,7 @@
             <div class="task-info-col">
               <div class="task-header">
                 <span class="task-title" title={task.title}>{task.title}</span>
-                <span class="task-status-badge {task.status}">{task.status.toUpperCase()}</span>
+                <span class="task-status-badge {task.status}">{t(`task.status.${task.status}`)}</span>
               </div>
 
               <!-- Progress bar -->
@@ -349,20 +366,20 @@
               <div class="task-status-footer">
                 {#if task.status === 'downloading'}
                   <span class="stats-text">
-                    {formatBytes(task.downloadedBytes)} / {task.totalBytes > 0 ? formatBytes(task.totalBytes) : 'Unknown Size'}
+                    {formatBytes(task.downloadedBytes)} / {task.totalBytes > 0 ? formatBytes(task.totalBytes) : t('task.unknown_size')}
                   </span>
                   <span class="stats-text speed">{task.speed}</span>
-                  <span class="stats-text eta">ETA: {task.eta}</span>
+                  <span class="stats-text eta">{t('task.eta')}: {task.eta}</span>
                 {:else if task.status === 'analyzing'}
-                  <span class="stats-text animated-dots">Connecting and analyzing source</span>
+                  <span class="stats-text animated-dots">{t('task.connecting')}</span>
                 {:else if task.status === 'merging'}
-                  <span class="stats-text animated-dots font-semibold text-indigo-400">FFmpeg merging video & audio</span>
+                  <span class="stats-text animated-dots font-semibold text-indigo-400">{t('task.merging')}</span>
                 {:else if task.status === 'completed'}
-                  <span class="stats-text success">Download completed</span>
+                  <span class="stats-text success">{t('task.completed')}</span>
                 {:else if task.status === 'failed'}
                   <span class="stats-text error" title={task.error}>Failed: {task.error || 'Unknown error'}</span>
                 {:else if task.status === 'cancelled'}
-                  <span class="stats-text warning">Cancelled by user</span>
+                  <span class="stats-text warning">{t('task.cancelled')}</span>
                 {/if}
               </div>
             </div>
@@ -397,6 +414,21 @@
       </div>
     {/if}
   </section>
+  {:else}
+  <!-- Remux Page -->
+  <section class="remux-page">
+    <div class="remux-hero">
+      <IconRepeat size={48} color="var(--text-muted)" />
+      <h2>{t('remux.title')}</h2>
+      <p>{t('remux.subtitle')}</p>
+      <div class="remux-drop-zone">
+        <IconCloudDownload size={32} color="var(--text-muted)" />
+        <span>{t('remux.drop_zone')}</span>
+      </div>
+      <p class="remux-formats">{t('remux.supported')}</p>
+    </div>
+  </section>
+  {/if}
 
   <!-- Clipboard Toast Slide-up -->
   {#if clipboardToast.visible}
@@ -404,13 +436,13 @@
       <div class="toast-content">
         <IconClipboard size={20} color="var(--accent-primary)" />
         <div class="toast-text">
-          <h4>Link detected in Clipboard</h4>
+          <h4>{t('toast.detected')}</h4>
           <p class="truncate">{clipboardToast.url}</p>
         </div>
       </div>
       <div class="toast-actions">
-        <button class="toast-btn secondary" onclick={() => clipboardToast.visible = false}>Ignore</button>
-        <button class="toast-btn primary" onclick={() => handleDownload(clipboardToast.url)}>Download</button>
+        <button class="toast-btn secondary" onclick={() => clipboardToast.visible = false}>{t('toast.ignore')}</button>
+        <button class="toast-btn primary" onclick={() => handleDownload(clipboardToast.url)}>{t('toast.download')}</button>
       </div>
     </div>
   {/if}
@@ -422,16 +454,25 @@
     <div class="settings-backdrop" onclick={() => showSettings = false}>
       <div class="settings-panel glass" onclick={(e) => e.stopPropagation()}>
         <div class="settings-header">
-          <h3>Preferences</h3>
+          <h3>{t('settings.title')}</h3>
           <button class="close-settings" onclick={() => showSettings = false}>
             <IconX size={18} />
           </button>
         </div>
 
         <div class="settings-body">
+          <!-- Language -->
+          <div class="setting-item">
+            <label for="lang-select">{t('settings.language')}</label>
+            <select id="lang-select" value={getLocale()} onchange={(e) => setLocale(e.currentTarget.value)} class="settings-select">
+              <option value="en">English</option>
+              <option value="ru">Русский</option>
+            </select>
+          </div>
+
           <!-- Save Path Option -->
           <div class="setting-item">
-            <label for="save-path">Save Folder</label>
+            <label for="save-path">{t('settings.save_folder')}</label>
             <div class="path-selector">
               <input type="text" readonly value={settings.savePath} id="save-path" class="path-input" />
               <button class="btn-select-dir" onclick={selectDirectory}>
@@ -442,35 +483,35 @@
 
           <!-- Download Mode -->
           <div class="setting-item">
-            <label for="download-mode">Download Mode</label>
+            <label for="download-mode">{t('settings.download_mode')}</label>
             <select id="download-mode" bind:value={settings.downloadMode} onchange={saveSettings} class="settings-select">
-              <option value="video">Video + Audio (Best)</option>
-              <option value="audio">Extract Audio Only</option>
+              <option value="video">{t('settings.video_audio')}</option>
+              <option value="audio">{t('settings.audio_only')}</option>
             </select>
           </div>
 
           {#if settings.downloadMode === 'video'}
             <!-- Video Quality -->
             <div class="setting-item">
-              <label for="video-quality">Max Video Quality</label>
+              <label for="video-quality">{t('settings.video_quality')}</label>
               <select id="video-quality" bind:value={settings.videoQuality} onchange={saveSettings} class="settings-select">
-                <option value="max">Best Available (2K/4K/8K)</option>
-                <option value="1080">1080p Full HD</option>
-                <option value="720">720p HD</option>
-                <option value="480">480p SD</option>
-                <option value="360">360p</option>
+                <option value="max">{t('settings.quality.max')}</option>
+                <option value="1080">{t('settings.quality.1080')}</option>
+                <option value="720">{t('settings.quality.720')}</option>
+                <option value="480">{t('settings.quality.480')}</option>
+                <option value="360">{t('settings.quality.360')}</option>
               </select>
             </div>
           {:else}
             <!-- Audio Format -->
             <div class="setting-item">
-              <label for="audio-format">Audio Format</label>
+              <label for="audio-format">{t('settings.audio_format')}</label>
               <select id="audio-format" bind:value={settings.audioFormat} onchange={saveSettings} class="settings-select">
-                <option value="best">Best Quality (m4a/mp3)</option>
-                <option value="mp3">MP3</option>
-                <option value="ogg">Ogg Vorbis</option>
-                <option value="wav">Wav Lossless</option>
-                <option value="opus">Opus</option>
+                <option value="best">{t('settings.audio.best')}</option>
+                <option value="mp3">{t('settings.audio.mp3')}</option>
+                <option value="ogg">{t('settings.audio.ogg')}</option>
+                <option value="wav">{t('settings.audio.wav')}</option>
+                <option value="opus">{t('settings.audio.opus')}</option>
               </select>
             </div>
           {/if}
@@ -478,12 +519,12 @@
           <!-- Clipboard monitor -->
           <div class="setting-item checkbox-item">
             <input type="checkbox" id="clip-monitor" bind:checked={settings.clipboardMonitoring} onchange={saveSettings} />
-            <label for="clip-monitor">Clipboard Link Monitoring</label>
+            <label for="clip-monitor">{t('settings.clipboard')}</label>
           </div>
         </div>
 
         <div class="settings-footer">
-          <p class="settings-app-version">Cobalt Downie v1.0.0 • Powered by Cobalt Core</p>
+          <p class="settings-app-version">{t('settings.version', { version: '1.0.0' })}</p>
         </div>
       </div>
     </div>
@@ -584,6 +625,40 @@
   .settings-btn:hover {
     background: rgba(255, 255, 255, 0.08);
     color: var(--text-primary);
+  }
+
+  /* Header Nav */
+  .header-nav {
+    display: flex;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 3px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .nav-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .nav-btn.active {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+  }
+
+  .nav-btn:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.04);
   }
 
   /* URL Paste Section */
@@ -1299,5 +1374,64 @@
     font-size: 8.5px;
     color: var(--text-muted);
     letter-spacing: 0.2px;
+  }
+
+  /* Remux Page */
+  .remux-page {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    overflow-y: auto;
+  }
+
+  .remux-hero {
+    text-align: center;
+    max-width: 420px;
+  }
+
+  .remux-hero h2 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    margin: 16px 0 8px 0;
+    font-weight: 600;
+  }
+
+  .remux-hero p {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0 0 24px 0;
+  }
+
+  .remux-drop-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: 20px;
+    padding: 48px 32px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .remux-drop-zone:hover {
+    border-color: var(--accent-primary);
+    background: rgba(99, 102, 241, 0.05);
+  }
+
+  .remux-drop-zone span {
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .remux-formats {
+    font-size: 10px !important;
+    color: var(--text-muted) !important;
   }
 </style>

@@ -1,0 +1,32 @@
+// Simple Svelte 5 i18n store for the desktop app.
+// Uses the same JSON format as the web i18n but with a minimal
+// set of keys relevant to the desktop UI.
+import en from './i18n/en.json';
+import ru from './i18n/ru.json';
+
+const translations: Record<string, Record<string, string>> = { en, ru };
+
+let currentLocale = $state('en');
+
+export function t(key: string, params?: Record<string, string | number>): string {
+    const dict = translations[currentLocale];
+    let value = dict?.[key] ?? key;
+
+    if (params) {
+        for (const [k, v] of Object.entries(params)) {
+            value = value.replace(`{{ ${k} }}`, String(v));
+        }
+    }
+
+    return value;
+}
+
+export function setLocale(locale: string) {
+    if (translations[locale]) {
+        currentLocale = locale;
+    }
+}
+
+export function getLocale(): string {
+    return currentLocale;
+}
