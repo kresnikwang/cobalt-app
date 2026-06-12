@@ -60,6 +60,7 @@
         const index = tasks.findIndex(t => t.id === updatedTask.id);
         if (index !== -1) {
           tasks[index] = updatedTask;
+          tasks = [...tasks]; // force Svelte 5 array proxy update
         } else {
           tasks = [updatedTask, ...tasks];
         }

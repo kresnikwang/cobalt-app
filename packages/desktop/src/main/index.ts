@@ -114,6 +114,8 @@ function startCobaltServer() {
     return;
   }
 
+  let restartCount = 0;
+
   cobaltProcess = fork(apiPath, [], {
     execPath: isDev ? 'node' : undefined,
     env: {
@@ -130,7 +132,20 @@ function startCobaltServer() {
 
   cobaltProcess.stdout?.on('data', (d) => console.log(`[Cobalt]: ${d.toString().trim()}`));
   cobaltProcess.stderr?.on('data', (d) => console.error(`[Cobalt Error]: ${d.toString().trim()}`));
-  cobaltProcess.on('close',  (code) => console.log(`Cobalt exited with code ${code}`));
+  
+  cobaltProcess.on('close', (code) => {
+    console.log(`Cobalt server exited with code ${code}`);
+    // Auto-restart on crash (non-zero or non-normal exits)
+    if (code !== 0 && code !== null) {
+      if (restartCount < 3) {
+        restartCount++;
+        console.warn(`Cobalt crashed! Restarting server in 2s (attempt ${restartCount}/3)...`);
+        setTimeout(() => startCobaltServer(), 2000);
+      } else {
+        console.error('Cobalt server crashed repeatedly. Auto-restart disabled.');
+      }
+    }
+  });
 }
 
 // -----------------------------------------------------------
@@ -263,6 +278,7 @@ ipcMain.handle('cancel-task', (_e, taskId: string) => {
       try { fs.unlinkSync(task.outputPath); } catch {}
     }
     notifyTaskUpdate(task);
+    processQueue();
     return true;
   }
   return false;
@@ -277,6 +293,7 @@ ipcMain.handle('delete-task', (_e, taskId: string) => {
   }
   activeTasks.delete(taskId);
   abortControllers.delete(taskId);
+  processQueue();
   return true;
 });
 
@@ -297,8 +314,8 @@ ipcMain.handle('download-url', (_e, { url, options }: { url: string; options?: P
   const task: DownloadTask = {
     id,
     url,
-    title: url,            // will be replaced by the actual filename once API responds
-    status: 'analyzing',
+    title: url,
+    status: 'queued', // Queue the download
     progress: 0,
     speed: '0 B/s',
     downloadedBytes: 0,
@@ -308,7 +325,7 @@ ipcMain.handle('download-url', (_e, { url, options }: { url: string; options?: P
 
   activeTasks.set(id, task);
   notifyTaskUpdate(task);
-  runDownloadTask(task, taskSettings); // intentionally fire-and-forget
+  processQueue(); // Start the queue processor
   return task;
 });
 
@@ -317,6 +334,31 @@ ipcMain.handle('download-url', (_e, { url, options }: { url: string; options?: P
 // -----------------------------------------------------------
 function notifyTaskUpdate(task: DownloadTask) {
   mainWindow?.webContents.send('task-updated', { ...task });
+}
+
+// -----------------------------------------------------------
+// Parallel Download Queue Scheduler
+// -----------------------------------------------------------
+function processQueue() {
+  const runningStatuses = ['analyzing', 'downloading', 'merging'];
+  const runningCount = Array.from(activeTasks.values()).filter(t => runningStatuses.includes(t.status)).length;
+  
+  const limit = currentSettings.maxParallelDownloads || 3;
+  if (runningCount >= limit) {
+    return; // Limit reached, wait for slots
+  }
+
+  // Find next in queue
+  const nextTask = Array.from(activeTasks.values()).find(t => t.status === 'queued');
+  if (nextTask) {
+    nextTask.status = 'analyzing';
+    notifyTaskUpdate(nextTask);
+
+    runDownloadTask(nextTask, currentSettings).catch(() => {});
+    
+    // Check if another slot is free
+    processQueue();
+  }
 }
 
 // -----------------------------------------------------------
@@ -503,5 +545,6 @@ async function runDownloadTask(task: DownloadTask, settings: Settings) {
     }
   } finally {
     abortControllers.delete(task.id);
+    processQueue(); // Always prompt the queue to run next items
   }
 }

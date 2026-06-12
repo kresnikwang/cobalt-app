@@ -46,6 +46,11 @@
     "directories": {
       "output": "release"
     },
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/ffmpeg-static/**/*",
+      "**/node_modules/isolated-vm/**/*"
+    ],
     "mac": {
       "category": "public.app-category.utilities",
       "target": [
