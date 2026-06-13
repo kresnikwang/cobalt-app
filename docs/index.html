@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cobalt Downie - Premium macOS Media Downloader</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #5266ff;
+            --primary-glow: rgba(82, 102, 255, 0.4);
+            --accent: #00f2fe;
+            --accent-glow: rgba(0, 242, 254, 0.4);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --glass-bg: rgba(15, 17, 23, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --radius-lg: 20px;
+            --radius-md: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Glowing background blobs */
+        .blob {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: -1;
+            opacity: 0.15;
+            pointer-events: none;
+            animation: float 20s infinite alternate;
+        }
+
+        .blob-1 {
+            background: var(--primary);
+            top: -100px;
+            left: -100px;
+        }
+
+        .blob-2 {
+            background: var(--accent);
+            top: 40%;
+            right: -100px;
+            animation-delay: -5s;
+        }
+
+        .blob-3 {
+            background: var(--primary);
+            bottom: -100px;
+            left: 20%;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(50px, 50px) scale(1.1); }
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Header / Navbar */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            transition: var(--transition);
+        }
+
+        .nav-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 70px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #fff;
+            text-decoration: none;
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: 0.5px;
+        }
+
+        .logo img {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .nav-links a:hover {
+            color: #fff;
+        }
+
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--primary), #3b4fd6);
+            color: #fff;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 4px 15px var(--primary-glow);
+            transition: var(--transition);
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(82, 102, 255, 0.6);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 160px 0 80px;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(82, 102, 255, 0.1);
+            border: 1px solid rgba(82, 102, 255, 0.2);
+            color: #7b8aff;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .hero h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.2;
+            color: #fff;
+            max-width: 800px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #ffffff 40%, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p.tagline {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 36px;
+        }
+
+        .hero-actions {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 60px;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, var(--primary), #3b4fd6);
+            color: #fff;
+            padding: 14px 28px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 10px 25px var(--primary-glow);
+            transition: var(--transition);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(82, 102, 255, 0.6);
+        }
+
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: #fff;
+            padding: 14px 28px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* Mockup / App Screenshot */
+        .mockup-container {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            perspective: 1000px;
+        }
+
+        .mockup-glow {
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            right: 10%;
+            bottom: 10%;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            filter: blur(80px);
+            opacity: 0.3;
+            z-index: -1;
+            border-radius: var(--radius-lg);
+        }
+
+        .mockup {
+            background: #161920;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            aspect-ratio: 700 / 600;
+            transform: rotateX(5deg) translateY(0);
+            transition: var(--transition);
+        }
+
+        .mockup:hover {
+            transform: rotateX(0deg) translateY(-10px);
+        }
+
+        /* Mockup window header */
+        .mockup-header {
+            background: #1a1e26;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+        }
+
+        .mockup-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .mockup-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .mockup-dot.red { background: #ff5f56; }
+        .mockup-dot.yellow { background: #ffbd2e; }
+        .mockup-dot.green { background: #27c93f; }
+
+        .mockup-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Simulated App Content */
+        .mockup-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            background: linear-gradient(180deg, #101216 0%, #0c0e12 100%);
+            gap: 20px;
+        }
+
+        .mockup-input-section {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .mockup-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            color: #5266ff;
+            font-size: 0.85rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .mockup-btn {
+            background: var(--primary);
+            border-radius: 8px;
+            width: 100px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .mockup-tasks {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mockup-task {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mockup-task-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+        }
+
+        .mockup-task-title {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .mockup-task-status {
+            color: #34d399;
+            font-weight: 500;
+        }
+
+        .mockup-progress-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .mockup-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 3px;
+            width: 78%;
+        }
+
+        .mockup-task-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 100px 0;
+            position: relative;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-header h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 16px;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+            font-size: 1.1rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at top left, rgba(82, 102, 255, 0.15), transparent 60%);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(82, 102, 255, 0.3);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(82, 102, 255, 0.1);
+            border: 1px solid rgba(82, 102, 255, 0.2);
+            color: #8c9cff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Services Grid */
+        .services {
+            padding: 80px 0;
+            background: rgba(255, 255, 255, 0.01);
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 16px;
+            margin-top: 40px;
+        }
+
+        .service-tag {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #fff;
+            transition: var(--transition);
+        }
+
+        .service-tag:hover {
+            background: rgba(82, 102, 255, 0.08);
+            border-color: rgba(82, 102, 255, 0.3);
+            transform: translateY(-3px);
+            color: #a5b4fc;
+        }
+
+        /* Install Guide / macOS quarantine info */
+        .install-guide {
+            padding: 100px 0;
+        }
+
+        .guide-box {
+            background: linear-gradient(135deg, rgba(15, 17, 23, 0.8) 0%, rgba(20, 22, 28, 0.8) 100%);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 40px;
+            margin-top: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .guide-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 32px;
+        }
+
+        .guide-step h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .guide-step-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .guide-step p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .warning-box {
+            background: rgba(234, 179, 8, 0.05);
+            border: 1px solid rgba(234, 179, 8, 0.2);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            margin-top: 36px;
+            display: flex;
+            gap: 16px;
+        }
+
+        .warning-icon {
+            color: #eab308;
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+        }
+
+        .warning-text h4 {
+            color: #fef08a;
+            font-weight: 700;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+        }
+
+        .warning-text p {
+            color: #fef9c3;
+            font-size: 0.85rem;
+            opacity: 0.85;
+            line-height: 1.5;
+        }
+
+        .code-snippet {
+            background: #000;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-family: monospace;
+            color: #38bdf8;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-top: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--glass-border);
+            padding: 60px 0;
+            background: #07080b;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .footer-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 24px;
+        }
+
+        .footer-logo img {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            list-style: none;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: #fff;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 2.2rem;
+            }
+
+            .hero p.tagline {
+                font-size: 1.05rem;
+            }
+
+            .btn-primary, .btn-secondary {
+                padding: 12px 20px;
+                font-size: 0.9rem;
+            }
+
+            .features {
+                padding: 60px 0;
+            }
+
+            .section-header h2 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Glowing Blobs -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+
+    <!-- Header / Navbar -->
+    <header>
+        <div class="container nav-wrapper">
+            <a href="#" class="logo">
+                <img src="favicon.png" alt="Cobalt Logo">
+                Cobalt Downie
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#services">Supported Sites</a></li>
+                <li><a href="#install">Install Guide</a></li>
+                <li><a href="https://github.com/kresnikwang/cobalt-app" target="_blank">GitHub</a></li>
+            </ul>
+            <a href="https://github.com/kresnikwang/cobalt-app/releases/latest" target="_blank" class="nav-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Download
+            </a>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-badge">
+                <span style="display:inline-block; width:6px; height:6px; background:#10b981; border-radius:50%; margin-right:6px; box-shadow:0 0 8px #10b981;"></span>
+                macOS App v1.0.5 Out Now
+            </div>
+            <h1>Premium macOS Media Downloader</h1>
+            <p class="tagline">Save your favorite media without the hassle. Beautiful glassmorphic UI, parallel downloads, and full support for dozens of services.</p>
+            <div class="hero-actions">
+                <a href="https://github.com/kresnikwang/cobalt-app/releases/latest" target="_blank" class="btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Download for macOS (DMG)
+                </a>
+                <a href="https://github.com/kresnikwang/cobalt-app" target="_blank" class="btn-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                    Source Code
+                </a>
+            </div>
+
+            <!-- Simulated App Mockup -->
+            <div class="mockup-container">
+                <div class="mockup-glow"></div>
+                <div class="mockup">
+                    <div class="mockup-header">
+                        <div class="mockup-dots">
+                            <div class="mockup-dot red"></div>
+                            <div class="mockup-dot yellow"></div>
+                            <div class="mockup-dot green"></div>
+                        </div>
+                        <div class="mockup-title">Cobalt Downie</div>
+                    </div>
+                    <div class="mockup-body">
+                        <div class="mockup-input-section">
+                            <div class="mockup-input">https://www.youtube.com/watch?v=dQw4w9WgXcQ</div>
+                            <div class="mockup-btn">Download</div>
+                        </div>
+                        <div class="mockup-tasks">
+                            <div class="mockup-task">
+                                <div class="mockup-task-meta">
+                                    <span class="mockup-task-title">Rick Astley - Never Gonna Give You Up.mp4</span>
+                                    <span class="mockup-task-status">Downloading</span>
+                                </div>
+                                <div class="mockup-progress-bar">
+                                    <div class="mockup-progress"></div>
+                                </div>
+                                <div class="mockup-task-stats">
+                                    <span>72.4 MB / 92.8 MB</span>
+                                    <span>8.4 MB/s</span>
+                                    <span>ETA: 0:02</span>
+                                </div>
+                            </div>
+                            <div class="mockup-task" style="opacity: 0.6;">
+                                <div class="mockup-task-meta">
+                                    <span class="mockup-task-title">Instagram Post Carousel Media.zip</span>
+                                    <span class="mockup-task-status" style="color: #60a5fa;">Queued</span>
+                                </div>
+                                <div class="mockup-progress-bar">
+                                    <div class="mockup-progress" style="width: 0%;"></div>
+                                </div>
+                                <div class="mockup-task-stats">
+                                    <span>-- MB / -- MB</span>
+                                    <span>0 B/s</span>
+                                    <span>Queued</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2>Why Cobalt Downie?</h2>
+                <p>A native desktop experience built specifically to make downloading public files friendly and fast.</p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                    </div>
+                    <h3>Local Cobalt Core</h3>
+                    <p>Embedded with the full Cobalt API engine running directly inside the main process, eliminating reliance on unstable public web instances.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="M12 6v6l4 2"></path></svg>
+                    </div>
+                    <h3>Parallel Downloads</h3>
+                    <p>Queue multiple URLs at once. The integrated scheduler will handle parallel downloads dynamically based on your custom slot limit settings.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                    </div>
+                    <h3>Clipboard Monitoring</h3>
+                    <p>Optionally monitors your clipboard to auto-detect media URLs, showing a subtle interactive prompt to download them with one click.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+                    </div>
+                    <h3>Smart Drag & Drop</h3>
+                    <p>Drag links from your web browser address bar directly and drop them anywhere into the application to initiate downloads instantly.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    </div>
+                    <h3>Zero Tracking or Ads</h3>
+                    <p>True to Cobalt's core philosophy—absolutely no telemetry, no tracking scripts, no ads, and no paywalls. Clean and direct saving.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                    </div>
+                    <h3>Multi-Language Support</h3>
+                    <p>Designed with Svelte 5 and an integrated i18n system supporting multiple locales, automatically synced with your macOS system settings.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="services">
+        <div class="container">
+            <div class="section-header">
+                <h2>Supported Platforms</h2>
+                <p>Cobalt Downie supports downloading videos, audios, and photos from a wide variety of websites.</p>
+            </div>
+            
+            <div class="services-grid">
+                <div class="service-tag">YouTube</div>
+                <div class="service-tag">Bilibili</div>
+                <div class="service-tag">TikTok</div>
+                <div class="service-tag">Instagram</div>
+                <div class="service-tag">Twitter / X</div>
+                <div class="service-tag">SoundCloud</div>
+                <div class="service-tag">Reddit</div>
+                <div class="service-tag">Vimeo</div>
+                <div class="service-tag">Bluesky</div>
+                <div class="service-tag">Pinterest</div>
+                <div class="service-tag">Snapchat</div>
+                <div class="service-tag">Dailymotion</div>
+                <div class="service-tag">Loom</div>
+                <div class="service-tag">Streamable</div>
+                <div class="service-tag">Twitch</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="install" class="install-guide">
+        <div class="container">
+            <div class="section-header">
+                <h2>Installation Guide</h2>
+                <p>Setting up Cobalt Downie on macOS is quick and straightforward.</p>
+            </div>
+
+            <div class="guide-box">
+                <div class="guide-steps">
+                    <div class="guide-step">
+                        <h3><span class="guide-step-num">1</span> Download</h3>
+                        <p>Get the latest <code>.dmg</code> installer from the <a href="https://github.com/kresnikwang/cobalt-app/releases/latest" target="_blank">Releases page</a> of the repository.</p>
+                    </div>
+                    <div class="guide-step">
+                        <h3><span class="guide-step-num">2</span> Install</h3>
+                        <p>Double-click the downloaded <code>.dmg</code> file, then drag the Cobalt icon into your macOS Applications folder.</p>
+                    </div>
+                    <div class="guide-step">
+                        <h3><span class="guide-step-num">3</span> Open</h3>
+                        <p>Launch Cobalt from your Applications or Launchpad, and start downloading your favorite content.</p>
+                    </div>
+                </div>
+
+                <div class="warning-box">
+                    <svg class="warning-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    <div class="warning-text">
+                        <h4>Bypassing macOS Gatekeeper (Unverified Developer)</h4>
+                        <p>Since the app is built and packaged without Apple Developer ID signing, macOS might show a warning dialog. You can bypass this easily by <strong>right-clicking (Control-clicking)</strong> <code>Cobalt.app</code> in Finder, selecting <strong>Open</strong>, and confirming. Alternatively, run this command in Terminal:</p>
+                        <span class="code-snippet">xattr -cr /Applications/Cobalt.app</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-logo">
+                <img src="favicon.png" alt="Cobalt Logo">
+                Cobalt Downie
+            </div>
+            <ul class="footer-links">
+                <li><a href="https://github.com/kresnikwang/cobalt-app" target="_blank">Repository</a></li>
+                <li><a href="https://github.com/kresnikwang/cobalt-app/issues" target="_blank">Report Issues</a></li>
+                <li><a href="https://github.com/kresnikwang/cobalt-app/blob/main/LICENSE" target="_blank">AGPL-3.0 License</a></li>
+            </ul>
+            <p>&copy; 2026 Cobalt Project. Designed with privacy, efficiency, and zero ads.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
