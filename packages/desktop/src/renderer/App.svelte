@@ -241,7 +241,7 @@
   <!-- Header / Window Bar -->
   <header class="window-header drag-handle">
     <div class="header-title no-drag">
-      <span class="gradient-text">COBALT</span> DOWNIE
+      <span class="gradient-text">COBALT</span>
     </div>
     <nav class="header-nav no-drag">
       <button class="nav-btn" class:active={currentPage === 'home'} onclick={() => currentPage = 'home'} title={t('nav.home')}>

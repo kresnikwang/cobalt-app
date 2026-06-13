@@ -57,5 +57,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: CobaltDownie-macOS-arm64
+          name: Cobalt-macOS-arm64
           path: packages/desktop/release/*.dmg
