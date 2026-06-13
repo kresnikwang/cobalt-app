@@ -11,7 +11,7 @@
     </p>
     <p>
         <a href="https://github.com/kresnikwang/cobalt-app/releases/latest">
-            📦 <b>Download macOS App (v1.0.6)</b>
+            📦 <b>Download macOS App (v1.0.7)</b>
         </a>
         &nbsp;•&nbsp;
         <a href="https://kresnikwang.github.io/cobalt-app/">

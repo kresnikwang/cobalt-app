@@ -1,37 +1,59 @@
 import { existsSync }  from 'node:fs';
-import { join, parse } from 'node:path';
+import { join, parse, dirname } from 'node:path';
 import { cwd }         from 'node:process';
 import { readFile }    from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 
 const findFile = (file) => {
-    let dir = cwd();
-
-    while (dir !== parse(dir).root) {
-        if (existsSync(join(dir, file))) {
-            return dir;
+    // 1. Try resolving starting from current working directory
+    try {
+        let dir = cwd();
+        while (dir && dir !== parse(dir).root) {
+            if (existsSync(join(dir, file))) {
+                return dir;
+            }
+            dir = join(dir, '../');
         }
+    } catch {}
 
-        dir = join(dir, '../');
-    }
+    // 2. Try resolving starting from the module's file location
+    try {
+        let dir = dirname(fileURLToPath(import.meta.url));
+        while (dir && dir !== parse(dir).root) {
+            if (existsSync(join(dir, file))) {
+                return dir;
+            }
+            dir = join(dir, '../');
+        }
+    } catch {}
 }
 
 const root = findFile('.git');
 const pack = findFile('package.json');
 
-const readGit = (filename) => {
+const readGit = async (filename) => {
     if (!root) {
-        throw 'no git repository root found';
+        return '';
     }
-
-    return readFile(join(root, filename), 'utf8');
+    try {
+        return await readFile(join(root, filename), 'utf8');
+    } catch {
+        return '';
+    }
 }
 
 export const getCommit = async () => {
-    return (await readGit('.git/logs/HEAD'))
-            ?.split('\n')
-            ?.filter(String)
-            ?.pop()
-            ?.split(' ')[1];
+    try {
+        const content = await readGit('.git/logs/HEAD');
+        if (!content) return 'unknown';
+        return content
+                ?.split('\n')
+                ?.filter(String)
+                ?.pop()
+                ?.split(' ')[1] || 'unknown';
+    } catch {
+        return 'unknown';
+    }
 }
 
 export const getBranch = async () => {
@@ -43,40 +65,50 @@ export const getBranch = async () => {
         return process.env.WORKERS_CI_BRANCH;
     }
 
-    return (await readGit('.git/HEAD'))
-            ?.replace(/^ref: refs\/heads\//, '')
-            ?.trim();
+    try {
+        const content = await readGit('.git/HEAD');
+        if (!content) return 'unknown';
+        return content
+                ?.replace(/^ref: refs\/heads\//, '')
+                ?.trim() || 'unknown';
+    } catch {
+        return 'unknown';
+    }
 }
 
 export const getRemote = async () => {
-    let remote = (await readGit('.git/config'))
-                    ?.split('\n')
-                    ?.find(line => line.includes('url = '))
-                    ?.split('url = ')[1];
+    try {
+        const content = await readGit('.git/config');
+        if (!content) return 'unknown';
+        let remote = content
+                        ?.split('\n')
+                        ?.find(line => line.includes('url = '))
+                        ?.split('url = ')[1];
 
-    if (remote?.startsWith('git@')) {
-        remote = remote.split(':')[1];
-    } else if (remote?.startsWith('http')) {
-        remote = new URL(remote).pathname.substring(1);
+        if (remote?.startsWith('git@')) {
+            remote = remote.split(':')[1];
+        } else if (remote?.startsWith('http')) {
+            remote = new URL(remote).pathname.substring(1);
+        }
+
+        remote = remote?.replace(/\.git$/, '');
+        return remote || 'unknown';
+    } catch {
+        return 'unknown';
     }
-
-    remote = remote?.replace(/\.git$/, '');
-
-    if (!remote) {
-        throw 'could not parse remote';
-    }
-
-    return remote;
 }
 
 export const getVersion = async () => {
     if (!pack) {
-        throw 'no package root found';
+        return '1.0.6';
     }
 
-    const { version } = JSON.parse(
-        await readFile(join(pack, 'package.json'), 'utf8')
-    );
-
-    return version;
+    try {
+        const { version } = JSON.parse(
+            await readFile(join(pack, 'package.json'), 'utf8')
+        );
+        return version || '1.0.6';
+    } catch {
+        return '1.0.6';
+    }
 }
