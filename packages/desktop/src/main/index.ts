@@ -134,6 +134,25 @@ async function startCobaltServer() {
   process.env.FORCE_LOCAL_PROCESSING = 'never';
   process.env.ENABLE_DEPRECATED_YOUTUBE_HLS = 'never';
 
+  const appPath = app.getAppPath();
+  if (app.isPackaged && appPath.endsWith('app.asar')) {
+    const ffmpegPath = path.join(
+      appPath.replace('app.asar', 'app.asar.unpacked'),
+      'node_modules/ffmpeg-static/ffmpeg'
+    );
+    if (fs.existsSync(ffmpegPath)) {
+      try {
+        fs.chmodSync(ffmpegPath, 0o755);
+        process.env.FFMPEG_PATH = ffmpegPath;
+        console.log(`Setting FFMPEG_PATH to: ${ffmpegPath}`);
+      } catch (e) {
+        console.error('Failed to chmod ffmpeg:', e);
+      }
+    } else {
+      console.error(`FFmpeg binary not found at: ${ffmpegPath}`);
+    }
+  }
+
   try {
     // @ts-ignore
     await import('../../../../api/src/cobalt.js');

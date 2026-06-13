@@ -1,4 +1,4 @@
-import ffmpeg from "ffmpeg-static";
+import ffmpegStatic from "ffmpeg-static";
 import { spawn } from "child_process";
 import { create as contentDisposition } from "content-disposition-header";
 
@@ -6,6 +6,8 @@ import { env } from "../config.js";
 import { destroyInternalStream } from "./manage.js";
 import { hlsExceptions } from "../processing/service-config.js";
 import { closeResponse, pipe, estimateTunnelLength, estimateAudioMultiplier } from "./shared.js";
+
+const ffmpeg = process.env.FFMPEG_PATH || ffmpegStatic;
 
 const metadataTags = new Set([
     "album",
@@ -91,7 +93,8 @@ const render = async (res, streamInfo, ffargs, estimateMultiplier) => {
 
         process.on('close', shutdown);
         res.on('finish', shutdown);
-    } catch {
+    } catch (err) {
+        console.error("FFmpeg render catch error:", err);
         shutdown();
     }
 }

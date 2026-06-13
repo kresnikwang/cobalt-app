@@ -26,7 +26,8 @@ export default async function(res, streamInfo) {
         }
 
         closeResponse(res);
-    } catch {
+    } catch (err) {
+        console.error("Stream catch error:", err);
         closeResponse(res);
     }
 }
