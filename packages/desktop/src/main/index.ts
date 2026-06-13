@@ -531,6 +531,10 @@ async function runDownloadTask(task: DownloadTask, settings: Settings) {
     await streamClose(fileStream);
     fileStream = null;
 
+    if (downloadedBytes === 0) {
+      throw new Error('No data received from media server (0-byte file)');
+    }
+
     task.status          = 'completed';
     task.progress        = 1.0;
     task.downloadedBytes = downloadedBytes;

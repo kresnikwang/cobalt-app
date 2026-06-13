@@ -1,6 +1,6 @@
 {
   "name": "@imput/cobalt-desktop",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Downie-like macOS media downloader powered by Cobalt Core",
   "main": "dist-electron/main/index.js",
   "type": "module",
