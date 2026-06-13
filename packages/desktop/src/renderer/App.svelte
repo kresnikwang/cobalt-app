@@ -301,7 +301,6 @@
     {/if}
   </nav>
 
-  {#if currentPage === 'home'}
   <!-- Downloads List Area -->
   <section class="downloads-area">
     {#if filteredTasks.length === 0}
