@@ -99,6 +99,9 @@ importers:
 
   packages/desktop:
     dependencies:
+      '@bufbuild/protobuf':
+        specifier: ^2.2.5
+        version: 2.2.5
       '@datastructures-js/priority-queue':
         specifier: ^6.3.5
         version: 6.3.5
@@ -135,6 +138,9 @@ importers:
       isolated-vm:
         specifier: ^6.0.2
         version: 6.1.2
+      meriyah:
+        specifier: ^6.1.4
+        version: 6.1.4
       mime:
         specifier: ^4.1.0
         version: 4.1.0

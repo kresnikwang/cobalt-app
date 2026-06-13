@@ -15,7 +15,7 @@
   import IconRepeat from "@tabler/icons-svelte/IconRepeat.svelte";
   import IconLanguage from "@tabler/icons-svelte/IconLanguage.svelte";
 
-  import { t, getLocale, setLocale } from './i18n';
+  import { t, getLocale, setLocale } from './i18n.svelte';
 
   // State declaration using Svelte 5 Runes
   let inputUrl = $state('');
@@ -53,6 +53,9 @@
   // Window handles via Electron contextBridge
   const electron = (window as any).electron;
 
+  let removeTaskListener: (() => void) | null = null;
+  let removeClipboardListener: (() => void) | null = null;
+
   onMount(async () => {
     if (electron) {
       // Get settings from main
@@ -61,7 +64,7 @@
       tasks = await electron.invoke('get-tasks');
 
       // Listen for updates from main
-      const removeTaskListener = electron.on('task-updated', (updatedTask: any) => {
+      removeTaskListener = electron.on('task-updated', (updatedTask: any) => {
         const index = tasks.findIndex(t => t.id === updatedTask.id);
         if (index !== -1) {
           tasks[index] = updatedTask;
@@ -71,7 +74,7 @@
         }
       });
 
-      const removeClipboardListener = electron.on('clipboard-detected', (url: string) => {
+      removeClipboardListener = electron.on('clipboard-detected', (url: string) => {
         // Show toast
         clipboardToast = { url, visible: true };
 
@@ -81,13 +84,13 @@
           clipboardToast.visible = false;
         }, 8000);
       });
-
-      onDestroy(() => {
-        removeTaskListener();
-        removeClipboardListener();
-        if (clipboardTimeout) clearTimeout(clipboardTimeout);
-      });
     }
+  });
+
+  onDestroy(() => {
+    if (removeTaskListener) removeTaskListener();
+    if (removeClipboardListener) removeClipboardListener();
+    if (clipboardTimeout) clearTimeout(clipboardTimeout);
   });
 
   async function handleDownload(urlToDownload = inputUrl) {
@@ -114,7 +117,7 @@
 
   async function saveSettings() {
     if (electron) {
-      settings = await electron.invoke('save-settings', $state.snapshot(settings));
+      settings = await electron.invoke('save-settings', JSON.parse(JSON.stringify(settings)));
     }
   }
 

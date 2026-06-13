@@ -17,13 +17,7 @@ export default defineConfig({
             outDir: 'dist-electron/main',
             minify: false,
             rollupOptions: {
-              external: [
-                'electron',
-                'express',
-                'ffmpeg-static',
-                'youtubei.js',
-                'undici'
-              ]
+              external: (id) => !id.startsWith('.') && !path.isAbsolute(id)
             }
           }
         }
@@ -31,17 +25,18 @@ export default defineConfig({
       {
         entry: 'src/preload/index.ts',
         onstart(options) {
-          // Notify the Renderer-Process to reload the page when the Preload-Scripts build is complete
           options.reload();
         },
         vite: {
           build: {
             outDir: 'dist-electron/preload',
+            lib: {
+              entry: 'src/preload/index.ts',
+              formats: ['cjs'],
+              fileName: () => 'index.js'
+            },
             rollupOptions: {
-              output: {
-                format: 'cjs',
-                entryFileNames: '[name].js'
-              }
+              external: ['electron']
             }
           }
         }

@@ -1,14 +1,37 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, clipboard } from 'electron';
-import { fork, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import Module from 'module';
+
+// Redirect isolated-vm and ffmpeg-static to app.asar.unpacked in production
+const originalResolve = (Module as any)._resolveFilename;
+(Module as any)._resolveFilename = function (
+  request: string,
+  parent: any,
+  isMain: boolean,
+  options: any
+) {
+  if (request === 'isolated-vm' || request === 'ffmpeg-static') {
+    const appPath = app.getAppPath();
+    if (appPath.endsWith('app.asar')) {
+      const entryFile = request === 'isolated-vm' ? 'isolated-vm.js' : 'index.js';
+      const unpackedPath = path.join(
+        appPath.replace('app.asar', 'app.asar.unpacked'),
+        `node_modules/${request}/${entryFile}`
+      );
+      if (fs.existsSync(unpackedPath)) {
+        return unpackedPath;
+      }
+    }
+  }
+  return originalResolve.call(this, request, parent, isMain, options);
+};
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
-let cobaltProcess: ChildProcess | null = null;
 const COBALT_PORT = 47301;
 const COBALT_URL = `http://127.0.0.1:${COBALT_PORT}`;
 
@@ -101,51 +124,23 @@ function streamClose(ws: fs.WriteStream): Promise<void> {
 // -----------------------------------------------------------
 // Start local Cobalt API server
 // -----------------------------------------------------------
-function startCobaltServer() {
-  const isDev = !app.isPackaged;
-  const apiPath = isDev
-    ? path.resolve(app.getAppPath(), '../../api/src/cobalt.js')
-    : path.resolve(process.resourcesPath, 'api/src/cobalt.js');
+async function startCobaltServer() {
+  console.log('Starting local Cobalt server in main process...');
 
-  console.log(`Starting local Cobalt server from: ${apiPath}`);
+  process.env.API_URL = COBALT_URL;
+  process.env.API_PORT = COBALT_PORT.toString();
+  process.env.API_LISTEN_ADDRESS = '127.0.0.1';
+  process.env.YOUTUBE_ALLOW_BETTER_AUDIO = '1';
+  process.env.FORCE_LOCAL_PROCESSING = 'never';
+  process.env.ENABLE_DEPRECATED_YOUTUBE_HLS = 'never';
 
-  if (!fs.existsSync(apiPath)) {
-    console.error(`Cobalt API not found at: ${apiPath}`);
-    return;
+  try {
+    // @ts-ignore
+    await import('../../../../api/src/cobalt.js');
+    console.log('Local Cobalt server started successfully in main process.');
+  } catch (error) {
+    console.error('Failed to start local Cobalt server in main process:', error);
   }
-
-  let restartCount = 0;
-
-  cobaltProcess = fork(apiPath, [], {
-    execPath: isDev ? 'node' : undefined,
-    env: {
-      ...process.env,
-      API_URL: COBALT_URL,
-      API_PORT: COBALT_PORT.toString(),
-      API_LISTEN_ADDRESS: '127.0.0.1',
-      YOUTUBE_ALLOW_BETTER_AUDIO: '1',
-      FORCE_LOCAL_PROCESSING: 'never',
-      ENABLE_DEPRECATED_YOUTUBE_HLS: 'never',
-    },
-    stdio: 'pipe'
-  });
-
-  cobaltProcess.stdout?.on('data', (d) => console.log(`[Cobalt]: ${d.toString().trim()}`));
-  cobaltProcess.stderr?.on('data', (d) => console.error(`[Cobalt Error]: ${d.toString().trim()}`));
-  
-  cobaltProcess.on('close', (code) => {
-    console.log(`Cobalt server exited with code ${code}`);
-    // Auto-restart on crash (non-zero or non-normal exits)
-    if (code !== 0 && code !== null) {
-      if (restartCount < 3) {
-        restartCount++;
-        console.warn(`Cobalt crashed! Restarting server in 2s (attempt ${restartCount}/3)...`);
-        setTimeout(() => startCobaltServer(), 2000);
-      } else {
-        console.error('Cobalt server crashed repeatedly. Auto-restart disabled.');
-      }
-    }
-  });
 }
 
 // -----------------------------------------------------------
@@ -222,7 +217,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('will-quit', () => {
-  cobaltProcess?.kill();
+  // Local server running in main process will naturally exit when app quits
 });
 
 // -----------------------------------------------------------
@@ -374,7 +369,7 @@ async function runDownloadTask(task: DownloadTask, settings: Settings) {
     const cobaltPayload = {
       url: task.url,
       videoQuality: settings.videoQuality,
-      downloadMode: settings.downloadMode,
+      downloadMode: settings.downloadMode === 'video' ? 'auto' : 'audio',
       audioFormat: settings.audioFormat,
       filenameStyle: 'pretty',
       youtubeVideoCodec: 'h264',
