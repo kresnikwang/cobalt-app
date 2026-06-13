@@ -36,7 +36,10 @@ export default defineConfig({
               fileName: () => 'index.js'
             },
             rollupOptions: {
-              external: ['electron']
+              external: ['electron'],
+              output: {
+                format: 'cjs'
+              }
             }
           }
         }

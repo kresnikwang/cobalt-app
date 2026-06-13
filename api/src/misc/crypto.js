@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv } from "crypto";
 
-const algorithm = "aes256";
+const algorithm = "aes-256-cbc";
 
 export function encryptStream(plaintext, iv, secret) {
     const buff = Buffer.from(JSON.stringify(plaintext));

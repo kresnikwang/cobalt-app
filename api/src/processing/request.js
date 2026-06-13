@@ -110,7 +110,8 @@ export function createResponse(responseType, responseData) {
                 ...response
             }
         }
-    } catch {
+    } catch (err) {
+        console.error("Error in createResponse:", err);
         return internalError();
     }
 }
