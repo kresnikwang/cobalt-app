@@ -1,12 +1,12 @@
-# Cobalt Downie (macOS App)
+# Cobalt (macOS App)
 
 <div align="center">
     <br/>
     <p>
-        <img src="../../web/static/favicon.png" title="Cobalt Downie" alt="Cobalt Downie logo" width="80" />
+        <img src="../../web/static/favicon.png" title="Cobalt" alt="Cobalt logo" width="80" />
     </p>
     <p>
-        <b>Cobalt Downie</b> - A premium macOS media downloader desktop application powered by Cobalt Core.
+        <b>Cobalt</b> - A premium macOS media downloader desktop application powered by Cobalt Core.
         <br/>
         Friendly, efficient, beautiful glassmorphic UI, with zero ads, trackers, or paywalls.
     </p>
@@ -27,7 +27,7 @@
 
 ## 🌐 Supported Services
 
-Cobalt Downie inherits full download support from the **Cobalt API Core**. Below is the status of supported platforms:
+Cobalt inherits full download support from the **Cobalt API Core**. Below is the status of supported platforms:
 
 | Service | Video + Audio | Audio Only | Video Only | Features & Notes |
 | :--- | :---: | :---: | :---: | :--- |
@@ -70,7 +70,7 @@ This spins up the Vite development server and opens the Electron wrapper with ho
 # Build Svelte files and package the DMG installer
 pnpm --filter @imput/cobalt-desktop build
 ```
-The output will be saved in `packages/desktop/release/CobaltDownie-1.0.0-arm64.dmg`.
+The output will be saved in `packages/desktop/release/Cobalt-1.0.6-arm64.dmg`.
 
 ---
 
@@ -80,11 +80,11 @@ Since this app is built locally without Apple Developer ID signing, macOS Gateke
 
 * **Method 1 (Quick Context Menu)**:
   1. Open Finder and navigate to the application folder.
-  2. **Right-click (Control-click)** the `CobaltDownie.app` file and select **Open**.
+  2. **Right-click (Control-click)** the `Cobalt.app` file and select **Open**.
   3. Click **Open** on the prompt. macOS will remember your decision.
   
 * **Method 2 (Terminal Command)**:
   Open Terminal and remove the quarantine flag using:
   ```bash
-  xattr -cr /Applications/CobaltDownie.app
+  xattr -cr /Applications/Cobalt.app
   ```

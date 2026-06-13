@@ -1,5 +1,5 @@
 {
-    "app.title": "COBALT DOWNIE",
+    "app.title": "COBALT",
     "nav.home": "Главная",
     "nav.remux": "Ремукс",
     "input.placeholder": "Вставь ссылку на видео/аудио...",
@@ -44,7 +44,7 @@
     "settings.video_quality": "Макс. качество видео",
     "settings.audio_format": "Формат аудио",
     "settings.clipboard": "Мониторинг буфера обмена",
-    "settings.version": "Cobalt Downie v{version} · На базе Cobalt Core",
+    "settings.version": "Cobalt v{version} · На базе Cobalt Core",
 
     "settings.video_audio": "Видео + Аудио (лучшее)",
     "settings.audio_only": "Только аудио",

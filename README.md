@@ -3,7 +3,7 @@
     <p>
         <img src="web/static/favicon.png" title="cobalt" alt="cobalt logo" width="100" />
     </p>
-    <h1>Cobalt Downie</h1>
+    <h1>Cobalt</h1>
     <p>
         The best way to save what you love — Friendly, efficient, ads-free media downloader.
         <br/>
@@ -11,7 +11,7 @@
     </p>
     <p>
         <a href="https://github.com/kresnikwang/cobalt-app/releases/latest">
-            📦 <b>Download macOS App (v1.0.5)</b>
+            📦 <b>Download macOS App (v1.0.6)</b>
         </a>
         &nbsp;•&nbsp;
         <a href="https://kresnikwang.github.io/cobalt-app/">
@@ -25,12 +25,12 @@
 
 ---
 
-## 🌟 Cobalt Downie (macOS Desktop App)
+## 🌟 Cobalt (macOS Desktop App)
 
-This repository features the **Cobalt Downie** macOS desktop application—a premium Downie-like client powered by a local Cobalt Core API.
+This repository features the **Cobalt** macOS desktop application—a premium Downie-like client powered by a local Cobalt Core API.
 
 <div align="center">
-    <img src="docs/images/desktop_preview.png" alt="Cobalt Downie App Preview" width="550" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.3);" />
+    <img src="docs/images/desktop_preview.png" alt="Cobalt App Preview" width="550" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.3);" />
 </div>
 
 ### Key Features

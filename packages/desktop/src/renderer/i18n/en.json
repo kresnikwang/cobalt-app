@@ -1,5 +1,5 @@
 {
-    "app.title": "COBALT DOWNIE",
+    "app.title": "COBALT",
     "nav.home": "Home",
     "nav.remux": "Remux",
     "input.placeholder": "Paste video/audio URL here...",
@@ -44,7 +44,7 @@
     "settings.video_quality": "Max Video Quality",
     "settings.audio_format": "Audio Format",
     "settings.clipboard": "Clipboard Link Monitoring",
-    "settings.version": "Cobalt Downie v{version} · Powered by Cobalt Core",
+    "settings.version": "Cobalt v{version} · Powered by Cobalt Core",
 
     "settings.video_audio": "Video + Audio (Best)",
     "settings.audio_only": "Extract Audio Only",
