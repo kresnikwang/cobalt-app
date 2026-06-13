@@ -30,7 +30,7 @@ function validateTypes(input: unknown, reference = defaultSettings as unknown) {
         if (!Array.isArray(input)) return false;
         const refElement = reference[0];
         if (refElement !== undefined) {
-            return input.every(item => validateAgainstDefault(item, refElement));
+            return input.every(item => validateTypes(item, refElement));
         }
         return true;
     }
