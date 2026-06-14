@@ -23,28 +23,9 @@ function copyPreload() {
   };
 }
 
-function copyLauncher() {
-  const src = path.resolve(__dirname, 'src/main/electron-launcher.cjs');
-  const dest = path.resolve(__dirname, 'dist-electron/main/electron-launcher.cjs');
-
-  const copy = () => {
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.copyFileSync(src, dest);
-  };
-
-  return {
-    name: 'copy-electron-launcher',
-    buildStart: copy,
-    configureServer() {
-      copy();
-    }
-  };
-}
-
 export default defineConfig({
   base: './',
   plugins: [
-    copyLauncher(),
     copyPreload(),
     svelte(),
     electron([
