@@ -17,7 +17,11 @@ export default defineConfig({
             outDir: 'dist-electron/main',
             minify: false,
             rollupOptions: {
-              external: (id) => !id.startsWith('.') && !path.isAbsolute(id)
+              external: (id) => {
+                // bundle workspace packages that electron-builder can't find in asar
+                if (id === '@imput/version-info') return false;
+                return !id.startsWith('.') && !path.isAbsolute(id);
+              }
             }
           }
         }

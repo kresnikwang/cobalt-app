@@ -50,6 +50,8 @@
       "output": "release"
     },
     "asar": true,
+    "npmRebuild": false,
+    "includeSubNodeModules": true,
     "asarUnpack": [
       "**/node_modules/ffmpeg-static/**/*",
       "**/node_modules/isolated-vm/**/*"

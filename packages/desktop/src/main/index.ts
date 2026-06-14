@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, dialog, shell, clipboard } from 'electron';
+import pkg from 'electron';
+const { app, BrowserWindow, ipcMain, dialog, shell, clipboard } = pkg;
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -6,6 +7,7 @@ import Module from 'module';
 
 // Redirect isolated-vm and ffmpeg-static to app.asar.unpacked in production
 const originalResolve = (Module as any)._resolveFilename;
+try {
 (Module as any)._resolveFilename = function (
   request: string,
   parent: any,
@@ -27,6 +29,9 @@ const originalResolve = (Module as any)._resolveFilename;
   }
   return originalResolve.call(this, request, parent, isMain, options);
 };
+} catch(e) {
+  console.error('Failed to install Module._resolveFilename patch:', e);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -179,6 +184,14 @@ async function startCobaltServer() {
     console.log('Local Cobalt server started successfully in main process.');
   } catch (error) {
     console.error('Failed to start local Cobalt server in main process:', error);
+    // Write error to userData (always writable in Electron)
+    try {
+      const errStr = `${new Date().toISOString()} — ${(error instanceof Error ? error.stack : String(error))}\n`;
+      fs.appendFileSync(path.join(app.getPath('userData'), 'cobalt-error.log'), errStr);
+    } catch (e2) {
+      // Console is our only hope now
+      console.error('Error logging failed:', e2);
+    }
   }
 }
 
