@@ -184,6 +184,8 @@ async function startCobaltServer() {
   // ── Proxy configuration ──
   // Set HTTP_PROXY / HTTPS_PROXY so the Cobalt API (undici EnvHttpProxyAgent)
   // routes outbound requests through the user's local proxy (e.g. Clash Verge).
+  // We also explicitly create an EnvHttpProxyAgent and set it as the global
+  // dispatcher to ensure ALL undici requests go through the proxy.
   const proxyUrl = currentSettings.proxyUrl?.trim();
   if (currentSettings.proxyEnabled && proxyUrl) {
     process.env.HTTP_PROXY  = proxyUrl;
@@ -191,6 +193,18 @@ async function startCobaltServer() {
     // Don't proxy localhost connections (API server, tunnel, etc.)
     process.env.NO_PROXY = 'localhost,127.0.0.1,::1';
     console.log(`Proxy enabled: ${proxyUrl}`);
+
+    // Explicitly install EnvHttpProxyAgent as the global dispatcher
+    try {
+      const undici = await import('undici');
+      if (undici.EnvHttpProxyAgent && undici.setGlobalDispatcher) {
+        const proxyAgent = new undici.EnvHttpProxyAgent();
+        undici.setGlobalDispatcher(proxyAgent);
+        console.log('EnvHttpProxyAgent set as global dispatcher for undici.');
+      }
+    } catch (e) {
+      console.warn('Failed to set EnvHttpProxyAgent as global dispatcher:', e);
+    }
   } else {
     // Clear proxy env vars if disabled
     delete process.env.HTTP_PROXY;

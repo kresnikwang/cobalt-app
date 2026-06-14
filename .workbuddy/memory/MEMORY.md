@@ -13,10 +13,14 @@
 
 ## 架构要点
 - SvelteKit web 前端 + Express API 后端 + Electron 桌面应用
-- 桌面应用 forks API 进程，监听 localhost:47301
+- 桌面应用在主进程直接 import API，监听 localhost:47301
 - Web Workers 处理本地下载 & ffmpeg WASM 转码（libav.js）
 - 内存存储 / Redis 双模式（stream cache, rate limiting）
 - COOP/COEP 头必需（SharedArrayBuffer / WASM 线程支持）
+- 代理支持：undici `EnvHttpProxyAgent` 读取 `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` env vars
+  - `getGlobalDispatcher()` 应作为所有 dispatcher 参数（`proxy.js`、`youtube-session.js` 曾用 `new Agent()` 绕过代理，已修复）
+  - 桌面端默认开启代理 `http://127.0.0.1:7897`（Clash Verge 混合端口）
+  - `NO_PROXY=localhost,127.0.0.1,::1` 避免本地连接走代理
 
 ## 关键文件
 - API 入口：`api/src/cobalt.js`
@@ -28,6 +32,8 @@
 - 管道创建：`web/src/lib/task-manager/queue.ts`
 - Worker 调度：`web/src/lib/task-manager/scheduler.ts`、`run-worker.ts`
 - 桌面主进程：`packages/desktop/src/main/index.ts`
+- 代理设置：Settings 包含 `proxyEnabled` + `proxyUrl`（默认 Clash Verge 7897）
+- i18n：en/ru/zh 三语，`packages/desktop/src/renderer/i18n/`
 
 ## 当前版本
 - API: v11.7.1
