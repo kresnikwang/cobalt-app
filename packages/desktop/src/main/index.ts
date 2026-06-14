@@ -152,11 +152,11 @@ async function startCobaltServer() {
             // Ignore error if flag was not present
           }
         }
-        process.env.FFMPEG_PATH = ffmpegPath;
-        console.log(`Setting FFMPEG_PATH to: ${ffmpegPath}`);
       } catch (e) {
-        console.error('Failed to configure ffmpeg:', e);
+        console.warn('Failed to adjust permissions on ffmpeg (e.g. read-only volume):', e);
       }
+      process.env.FFMPEG_PATH = ffmpegPath;
+      console.log(`Setting FFMPEG_PATH to: ${ffmpegPath}`);
     } else {
       console.error(`FFmpeg binary not found at: ${ffmpegPath}`);
     }

@@ -100,15 +100,15 @@ export const getRemote = async () => {
 
 export const getVersion = async () => {
     if (!pack) {
-        return '1.0.12';
+        return '1.0.13';
     }
 
     try {
         const { version } = JSON.parse(
             await readFile(join(pack, 'package.json'), 'utf8')
         );
-        return version || '1.0.12';
+        return version || '1.0.13';
     } catch {
-        return '1.0.12';
+        return '1.0.13';
     }
 }

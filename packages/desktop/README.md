@@ -70,7 +70,7 @@ This spins up the Vite development server and opens the Electron wrapper with ho
 # Build Svelte files and package the DMG installer
 pnpm --filter @imput/cobalt-desktop build
 ```
-The output will be saved in `packages/desktop/release/Cobalt-1.0.12-arm64.dmg`.
+The output will be saved in `packages/desktop/release/Cobalt-1.0.13-arm64.dmg`.
 
 ---
 
