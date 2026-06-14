@@ -67,14 +67,14 @@ const render = async (res, streamInfo, ffargs, estimateMultiplier) => {
 
     try {
         const args = [
-            '-loglevel', '-8',
+            '-loglevel', 'error',
             ...ffargs,
         ];
 
         process = spawn(...getCommand(args), {
             windowsHide: true,
             stdio: [
-                'ignore', 'ignore', 'ignore',
+                'ignore', 'ignore', 'inherit',
                 'pipe'
             ],
         });

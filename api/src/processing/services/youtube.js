@@ -556,6 +556,10 @@ export default async function (o) {
         innertubeClient
     };
 
+    const headers = {
+        "user-agent": yt.session.context.client.userAgent || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+    };
+
     if (audio && o.isAudioOnly) {
         let bestAudio = codec === "h264" ? "m4a" : "opus";
         let urls = audio.url;
@@ -582,6 +586,7 @@ export default async function (o) {
             type: "audio",
             isAudioOnly: true,
             urls,
+            headers,
             filenameAttributes,
             fileMetadata,
             bestAudio,
@@ -630,6 +635,7 @@ export default async function (o) {
                 video,
                 audio,
             ],
+            headers,
             subtitles: subtitles?.url,
             filenameAttributes,
             fileMetadata,

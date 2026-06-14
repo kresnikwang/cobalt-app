@@ -5,7 +5,10 @@ import { Green } from "../misc/console-text.js";
 import express from "express";
 
 const validateTunnel = (req, res) => {
-    if (!req.ip.endsWith('127.0.0.1')) {
+    const ip = req.ip || req.socket.remoteAddress || '';
+    const isLocal = ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip.endsWith('127.0.0.1');
+    if (!isLocal) {
+        console.warn(`[Tunnel Security] Rejected connection from non-loopback IP: ${ip}`);
         res.sendStatus(403);
         return;
     }
@@ -31,8 +34,8 @@ const streamTunnel = (req, res) => {
     }
 
     streamInfo.headers = new Map([
-        ...(streamInfo.headers || []),
-        ...Object.entries(req.headers)
+        ...Object.entries(req.headers),
+        ...(streamInfo.headers || [])
     ]);
 
     return stream(res, { type: 'internal', data: streamInfo });
@@ -57,5 +60,9 @@ export const setupTunnelHandler = () => {
         const { port } = server.address();
         console.log(`${Green('[✓]')} internal tunnel handler running on 127.0.0.1:${port}`);
         setTunnelPort(port);
+    });
+
+    server.on('error', (err) => {
+        console.error('Tunnel server error:', err);
     });
 }

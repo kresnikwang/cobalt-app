@@ -127,6 +127,17 @@ function streamClose(ws: fs.WriteStream): Promise<void> {
 async function startCobaltServer() {
   console.log('Starting local Cobalt server in main process...');
 
+  try {
+    const undici = await import('undici');
+    globalThis.fetch = undici.fetch as any;
+    globalThis.Headers = undici.Headers as any;
+    globalThis.Request = undici.Request as any;
+    globalThis.Response = undici.Response as any;
+    console.log('Successfully overrode globalThis.fetch with undici in Electron main process.');
+  } catch (e) {
+    console.warn('Failed to override globalThis.fetch with undici:', e);
+  }
+
   process.env.API_URL = COBALT_URL;
   process.env.API_PORT = COBALT_PORT.toString();
   process.env.API_LISTEN_ADDRESS = '127.0.0.1';
@@ -229,16 +240,30 @@ function setupClipboardMonitor() {
 }
 
 // -----------------------------------------------------------
-// App lifecycle
+// App lifecycle (with single instance lock)
 // -----------------------------------------------------------
-app.whenReady().then(() => {
-  startCobaltServer();
-  createWindow();
-  setupClipboardMonitor();
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    // Focus the existing window if user tries to open another instance
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
   });
-});
+
+  app.whenReady().then(() => {
+    startCobaltServer();
+    createWindow();
+    setupClipboardMonitor();
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  });
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

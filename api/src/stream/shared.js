@@ -13,8 +13,6 @@ const serviceHeaders = {
     },
     youtube: {
         accept: '*/*',
-        origin: 'https://www.youtube.com',
-        referer: 'https://www.youtube.com',
         DNT: '?1'
     },
     vk: {

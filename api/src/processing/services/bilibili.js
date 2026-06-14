@@ -18,51 +18,78 @@ function extractBestQuality(dashData) {
 }
 
 async function com_download(id, partId) {
-    const url = new URL(`https://bilibili.com/video/${id}`);
-
-    if (partId) {
-        url.searchParams.set('p', partId);
-    }
-
-    const html = await fetch(url, {
-        headers: {
-            "user-agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+    try {
+        const metadataUrl = `https://api.bilibili.com/x/web-interface/view?bvid=${id}`;
+        const metadataRes = await fetch(metadataUrl, {
+            headers: {
+                "user-agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+            }
+        });
+        if (!metadataRes.ok) {
+            return { error: "fetch.fail" };
         }
-    })
-    .then(r => r.text())
-    .catch(() => {});
-
-    if (!html) {
-        return { error: "fetch.fail" }
+        
+        const metadataJson = await metadataRes.json();
+        if (metadataJson.code !== 0 || !metadataJson.data) {
+            return { error: "fetch.empty" };
+        }
+        
+        const aid = metadataJson.data.aid;
+        const pages = metadataJson.data.pages || [];
+        if (pages.length === 0) {
+            return { error: "fetch.empty" };
+        }
+        
+        // partId is 1-indexed (e.g. p=1 is the first part)
+        const pIdx = partId ? Number(partId) - 1 : 0;
+        if (pIdx < 0 || pIdx >= pages.length) {
+            return { error: "fetch.empty" };
+        }
+        const cid = pages[pIdx].cid;
+        
+        const playurl = `https://api.bilibili.com/x/player/playurl?avid=${aid}&cid=${cid}&qn=80&type=&otype=json&fourk=1&fnver=0&fnval=4048`;
+        const playRes = await fetch(playurl, {
+            headers: {
+                "user-agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+                "referer": "https://www.bilibili.com"
+            }
+        });
+        if (!playRes.ok) {
+            return { error: "fetch.fail" };
+        }
+        
+        const playJson = await playRes.json();
+        if (playJson.code !== 0 || !playJson.data) {
+            return { error: "fetch.empty" };
+        }
+        
+        const dashData = playJson.data.dash;
+        if (!dashData) {
+            return { error: "fetch.empty" };
+        }
+        
+        if (playJson.data.timelength > env.durationLimit * 1000) {
+            return { error: "content.too_long" };
+        }
+        
+        const [ video, audio ] = extractBestQuality(dashData);
+        if (!video || !audio) {
+            return { error: "fetch.empty" };
+        }
+        
+        let filenameBase = `bilibili_${id}`;
+        if (partId) {
+            filenameBase += `_${partId}`;
+        }
+        
+        return {
+            urls: [video.baseUrl, audio.baseUrl],
+            audioFilename: `${filenameBase}_audio`,
+            filename: `${filenameBase}_${video.width}x${video.height}.mp4`,
+        };
+    } catch {
+        return { error: "fetch.fail" };
     }
-
-    if (!(html.includes('<script>window.__playinfo__=') && html.includes('"video_codecid"'))) {
-        return { error: "fetch.empty" };
-    }
-
-    const streamData = JSON.parse(
-        html.split('<script>window.__playinfo__=')[1].split('</script>')[0]
-    );
-
-    if (streamData.data.timelength > env.durationLimit * 1000) {
-        return { error: "content.too_long" };
-    }
-
-    const [ video, audio ] = extractBestQuality(streamData.data.dash);
-    if (!video || !audio) {
-        return { error: "fetch.empty" };
-    }
-
-    let filenameBase = `bilibili_${id}`;
-    if (partId) {
-        filenameBase += `_${partId}`;
-    }
-
-    return {
-        urls: [video.baseUrl, audio.baseUrl],
-        audioFilename: `${filenameBase}_audio`,
-        filename: `${filenameBase}_${video.width}x${video.height}.mp4`,
-    };
 }
 
 async function tv_download(id) {

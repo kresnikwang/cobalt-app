@@ -343,7 +343,11 @@ export const runAPI = async (express, app, __dirname, isPrimary = true) => {
         );
     });
 
-    http.createServer(app).listen({
+    const server = http.createServer(app);
+    server.on('error', (err) => {
+        console.error('Cobalt API server error:', err);
+    });
+    server.listen({
         port: env.apiPort,
         host: env.listenAddress,
         reusePort: env.instanceCount > 1 || undefined
