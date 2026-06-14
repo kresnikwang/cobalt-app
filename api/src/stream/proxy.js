@@ -1,10 +1,8 @@
-import { Agent, request } from "undici";
+import { getGlobalDispatcher, request } from "undici";
 import { create as contentDisposition } from "content-disposition-header";
 
 import { destroyInternalStream } from "./manage.js";
 import { getHeaders, closeRequest, closeResponse, pipe } from "./shared.js";
-
-const defaultAgent = new Agent();
 
 function prepareHeaders(streamInfo) {
     return {
@@ -30,7 +28,7 @@ export default async function (streamInfo, res) {
             headers: prepareHeaders(streamInfo),
             signal: abortController.signal,
             maxRedirections: 16,
-            dispatcher: defaultAgent,
+            dispatcher: getGlobalDispatcher(),
         });
 
         res.status(statusCode);

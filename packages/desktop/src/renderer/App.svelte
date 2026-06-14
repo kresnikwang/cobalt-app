@@ -32,7 +32,9 @@
     videoQuality: '720',
     audioFormat: 'best',
     clipboardMonitoring: true,
-    maxParallelDownloads: 3
+    maxParallelDownloads: 3,
+    proxyEnabled: true,
+    proxyUrl: 'http://127.0.0.1:7897'
   });
 
   // Tasks List
@@ -468,6 +470,7 @@
             <label for="lang-select">{t('settings.language')}</label>
             <select id="lang-select" value={getLocale()} onchange={(e) => setLocale(e.currentTarget.value)} class="settings-select">
               <option value="en">English</option>
+              <option value="zh">中文</option>
               <option value="ru">Русский</option>
             </select>
           </div>
@@ -523,6 +526,26 @@
             <input type="checkbox" id="clip-monitor" bind:checked={settings.clipboardMonitoring} onchange={saveSettings} />
             <label for="clip-monitor">{t('settings.clipboard')}</label>
           </div>
+
+          <!-- Proxy Settings -->
+          <div class="setting-divider"></div>
+          <div class="setting-section-title">{t('settings.proxy')}</div>
+
+          <div class="setting-item checkbox-item">
+            <input type="checkbox" id="proxy-enable" bind:checked={settings.proxyEnabled} onchange={saveSettings} />
+            <label for="proxy-enable">{t('settings.proxy.enable')}</label>
+          </div>
+
+          {#if settings.proxyEnabled}
+            <div class="setting-item">
+              <label for="proxy-url">{t('settings.proxy.url')}</label>
+              <input type="text" id="proxy-url" bind:value={settings.proxyUrl} onchange={saveSettings} class="settings-input" placeholder={t('settings.proxy.hint')} />
+              <span class="setting-hint">{t('settings.proxy.restart')}</span>
+            </div>
+            <button class="restart-btn" onclick={() => electron?.invoke('restart-app')}>
+              ↻ Restart App
+            </button>
+          {/if}
         </div>
 
         <div class="settings-footer">
@@ -1313,6 +1336,68 @@
   .settings-footer {
     padding: 20px;
     border-top: 1px solid var(--border-color);
+  }
+
+  .setting-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 4px 0;
+  }
+
+  .setting-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent-primary);
+    margin-top: 4px;
+  }
+
+  .settings-input {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    padding: 0 10px;
+    font-size: 12px;
+    height: 32px;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+  }
+
+  .settings-input:focus {
+    border-color: var(--accent-primary);
+  }
+
+  .settings-input::placeholder {
+    color: var(--text-muted);
+    font-family: var(--font-display);
+  }
+
+  .setting-hint {
+    font-size: 9px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .restart-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+
+  .restart-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent-primary);
   }
 
   .settings-app-version {

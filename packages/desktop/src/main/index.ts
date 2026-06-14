@@ -50,6 +50,8 @@ interface Settings {
   audioFormat: string;
   clipboardMonitoring: boolean;
   maxParallelDownloads: number;
+  proxyEnabled: boolean;
+  proxyUrl: string;
 }
 
 const defaultSettings: Settings = {
@@ -58,7 +60,9 @@ const defaultSettings: Settings = {
   videoQuality: '720',
   audioFormat: 'best',
   clipboardMonitoring: true,
-  maxParallelDownloads: 3
+  maxParallelDownloads: 3,
+  proxyEnabled: true,
+  proxyUrl: 'http://127.0.0.1:7897',
 };
 
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
@@ -176,6 +180,24 @@ async function startCobaltServer() {
   process.env.YOUTUBE_ALLOW_BETTER_AUDIO = '1';
   process.env.FORCE_LOCAL_PROCESSING = 'never';
   process.env.ENABLE_DEPRECATED_YOUTUBE_HLS = 'always';
+
+  // ── Proxy configuration ──
+  // Set HTTP_PROXY / HTTPS_PROXY so the Cobalt API (undici EnvHttpProxyAgent)
+  // routes outbound requests through the user's local proxy (e.g. Clash Verge).
+  const proxyUrl = currentSettings.proxyUrl?.trim();
+  if (currentSettings.proxyEnabled && proxyUrl) {
+    process.env.HTTP_PROXY  = proxyUrl;
+    process.env.HTTPS_PROXY = proxyUrl;
+    // Don't proxy localhost connections (API server, tunnel, etc.)
+    process.env.NO_PROXY = 'localhost,127.0.0.1,::1';
+    console.log(`Proxy enabled: ${proxyUrl}`);
+  } else {
+    // Clear proxy env vars if disabled
+    delete process.env.HTTP_PROXY;
+    delete process.env.HTTPS_PROXY;
+    delete process.env.NO_PROXY;
+    console.log('Proxy disabled — direct connections only.');
+  }
 
   const appPath = app.getAppPath();
   if (app.isPackaged && appPath.endsWith('app.asar')) {
@@ -322,6 +344,11 @@ ipcMain.handle('save-settings', (_e, newSettings: Partial<Settings>) => {
   currentSettings = { ...currentSettings, ...newSettings };
   persistSettings(currentSettings);
   return currentSettings;
+});
+
+ipcMain.handle('restart-app', () => {
+  app.relaunch();
+  app.exit(0);
 });
 
 ipcMain.handle('select-directory', async () => {

@@ -1,10 +1,8 @@
 import * as cluster from "../../misc/cluster.js";
 
-import { Agent } from "undici";
+import { getGlobalDispatcher } from "undici";
 import { env } from "../../config.js";
 import { Green, Yellow } from "../../misc/console-text.js";
-
-const defaultAgent = new Agent();
 
 let session;
 
@@ -41,7 +39,7 @@ const loadSession = async () => {
 
     const newSession = await fetch(
         sessionServerUrl,
-        { method: 'POST', dispatcher: defaultAgent }
+        { method: 'POST', dispatcher: getGlobalDispatcher() }
     ).then(a => a.json());
 
     validateSession(newSession);

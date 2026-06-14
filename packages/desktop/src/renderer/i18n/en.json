@@ -44,6 +44,11 @@
     "settings.video_quality": "Max Video Quality",
     "settings.audio_format": "Audio Format",
     "settings.clipboard": "Clipboard Link Monitoring",
+    "settings.proxy": "Proxy",
+    "settings.proxy.enable": "Enable HTTP Proxy",
+    "settings.proxy.url": "Proxy URL",
+    "settings.proxy.hint": "e.g. http://127.0.0.1:7897 (Clash Verge)",
+    "settings.proxy.restart": "Requires app restart to take effect",
     "settings.version": "Cobalt v{version} · Powered by Cobalt Core",
 
     "settings.video_audio": "Video + Audio (Best)",

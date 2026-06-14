@@ -44,6 +44,11 @@
     "settings.video_quality": "Макс. качество видео",
     "settings.audio_format": "Формат аудио",
     "settings.clipboard": "Мониторинг буфера обмена",
+    "settings.proxy": "Прокси",
+    "settings.proxy.enable": "Включить HTTP-прокси",
+    "settings.proxy.url": "URL прокси",
+    "settings.proxy.hint": "напр. http://127.0.0.1:7897 (Clash Verge)",
+    "settings.proxy.restart": "Требуется перезапуск приложения",
     "settings.version": "Cobalt v{version} · На базе Cobalt Core",
 
     "settings.video_audio": "Видео + Аудио (лучшее)",

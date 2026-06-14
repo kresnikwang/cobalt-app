@@ -3,8 +3,9 @@
 // set of keys relevant to the desktop UI.
 import en from './i18n/en.json';
 import ru from './i18n/ru.json';
+import zh from './i18n/zh.json';
 
-const translations: Record<string, Record<string, string>> = { en, ru };
+const translations: Record<string, Record<string, string>> = { en, ru, zh };
 
 let currentLocale = $state('en');
 
