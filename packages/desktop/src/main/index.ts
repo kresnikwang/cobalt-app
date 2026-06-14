@@ -143,10 +143,19 @@ async function startCobaltServer() {
     if (fs.existsSync(ffmpegPath)) {
       try {
         fs.chmodSync(ffmpegPath, 0o755);
+        if (process.platform === 'darwin') {
+          try {
+            const { execSync } = await import('child_process');
+            execSync(`xattr -d com.apple.quarantine "${ffmpegPath}"`, { stdio: 'ignore' });
+            console.log('Successfully removed quarantine flag from ffmpeg.');
+          } catch (e) {
+            // Ignore error if flag was not present
+          }
+        }
         process.env.FFMPEG_PATH = ffmpegPath;
         console.log(`Setting FFMPEG_PATH to: ${ffmpegPath}`);
       } catch (e) {
-        console.error('Failed to chmod ffmpeg:', e);
+        console.error('Failed to configure ffmpeg:', e);
       }
     } else {
       console.error(`FFmpeg binary not found at: ${ffmpegPath}`);
