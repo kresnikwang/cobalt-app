@@ -1,8 +1,8 @@
-import pkg from 'electron';
-const { app, BrowserWindow, ipcMain, dialog, shell, clipboard } = pkg;
+// Electron APIs are exposed by CJS launcher (electron-launcher.cjs) as
+// globalThis.__electron — avoids ESM/CJS interop regression on Node.js v20.18+
+const { app, BrowserWindow, ipcMain, dialog, shell, clipboard } = (globalThis as any).__electron;
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 import Module from 'module';
 
 // Redirect isolated-vm and ffmpeg-static to app.asar.unpacked in production
