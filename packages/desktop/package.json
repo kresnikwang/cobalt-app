@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && electron-builder"
+    "build": "vite build && node scripts/fix-isolated-vm.mjs && electron-builder",
+    "postinstall": "node scripts/fix-isolated-vm.mjs"
   },
   "dependencies": {
     "@datastructures-js/priority-queue": "^6.3.5",
@@ -52,9 +53,11 @@
     "asar": true,
     "npmRebuild": false,
     "includeSubNodeModules": true,
+    "afterPack": "./scripts/electron-builder-after-pack.cjs",
     "asarUnpack": [
       "**/node_modules/ffmpeg-static/**/*",
-      "**/node_modules/isolated-vm/**/*"
+      "**/node_modules/isolated-vm/**/*",
+      "**/node_modules/node-gyp-build/**/*"
     ],
     "mac": {
       "category": "public.app-category.utilities",
