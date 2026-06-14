@@ -74,7 +74,7 @@ const render = async (res, streamInfo, ffargs, estimateMultiplier) => {
         process = spawn(...getCommand(args), {
             windowsHide: true,
             stdio: [
-                'ignore', 'ignore', 'inherit',
+                'ignore', 'ignore', 'ignore',
                 'pipe'
             ],
         });

@@ -39,7 +39,7 @@ function prepareHeaders(streamInfo, extra = {}) {
 
 async function* readChunks(streamInfo, size) {
     let read = 0n, chunksSinceTransplant = 0;
-    const chunkSize = streamInfo.service === "youtube" ? BigInt(2e6) : BigInt(8e6);
+    const chunkSize = BigInt(8e6);
 
     while (read < size) {
         if (streamInfo.controller.signal.aborted) {
@@ -57,19 +57,14 @@ async function* readChunks(streamInfo, size) {
                 maxRedirections: 4
             });
         } catch (err) {
-            console.error(`readChunks error fetching range ${read}-${read + chunkSize}:`, err.message || err);
             throw err;
         }
 
         if (chunk.statusCode !== 200 && chunk.statusCode !== 206) {
-            console.error(`readChunks error: status code ${chunk.statusCode} for range ${read}-${read + chunkSize}`);
-            console.error(`Request URL: ${streamInfo.url}`);
-            console.error(`Request Headers:`, prepareHeaders(streamInfo, {
-                Range: `bytes=${read}-${read + chunkSize}`
-            }));
+            console.error(`readChunks: HTTP ${chunk.statusCode} for range ${read}-${read + chunkSize}`);
         }
 
-        if (chunk.statusCode === 403 && chunksSinceTransplant >= 3 && streamInfo.transplant) {
+        if (chunk.statusCode === 403 && chunksSinceTransplant >= 1 && streamInfo.transplant) {
             chunksSinceTransplant = 0;
             try {
                 await streamInfo.transplant(streamInfo.dispatcher);
@@ -107,17 +102,12 @@ async function handleChunkedStream(streamInfo, res) {
             let success = false;
             // 1. Try HEAD request first
             try {
-                const headHeaders = prepareHeaders(streamInfo);
-                console.log(`[handleChunkedStream] HEAD Request: ${streamInfo.url}`);
-                console.log(`[handleChunkedStream] HEAD Headers:`, headHeaders);
                 req = await fetch(streamInfo.url, {
-                    headers: headHeaders,
+                    headers: prepareHeaders(streamInfo),
                     method: 'HEAD',
                     dispatcher: streamInfo.dispatcher,
                     signal
                 });
-                console.log(`[handleChunkedStream] HEAD Response Status: ${req.status}`);
-                console.log(`[handleChunkedStream] HEAD Response Headers:`, Object.fromEntries(req.headers.entries()));
 
                 if (req.status === 200) {
                     const cl = req.headers.get('content-length');
@@ -131,25 +121,20 @@ async function handleChunkedStream(streamInfo, res) {
                     }
                 }
             } catch (e) {
-                console.error("HEAD request failed inside handleChunkedStream:", e.message || e);
+                console.error("HEAD request failed:", e.message || e);
             }
 
             // 2. Fallback to GET with Range: bytes=0-0 (useful for YouTube and others blocking HEAD)
             if (!success) {
                 try {
-                    const getHeadersObj = prepareHeaders(streamInfo, {
-                        Range: 'bytes=0-0'
-                    });
-                    console.log(`[handleChunkedStream] GET Fallback Request: ${streamInfo.url}`);
-                    console.log(`[handleChunkedStream] GET Fallback Headers:`, getHeadersObj);
                     req = await fetch(streamInfo.url, {
-                        headers: getHeadersObj,
+                        headers: prepareHeaders(streamInfo, {
+                            Range: 'bytes=0-0'
+                        }),
                         method: 'GET',
                         dispatcher: streamInfo.dispatcher,
                         signal
                     });
-                    console.log(`[handleChunkedStream] GET Fallback Response Status: ${req.status}`);
-                    console.log(`[handleChunkedStream] GET Fallback Response Headers:`, Object.fromEntries(req.headers.entries()));
 
                     if (req.status === 206) {
                         const cr = req.headers.get('content-range');
@@ -170,13 +155,13 @@ async function handleChunkedStream(streamInfo, res) {
                             size = BigInt(cl);
                             contentType = req.headers.get('content-type') || '';
                             if (streamInfo.service !== "youtube") {
-                                    streamInfo.url = req.url;
-                                }
+                                streamInfo.url = req.url;
+                            }
                             success = true;
                         }
                     }
                 } catch (e) {
-                    console.error("GET request failed inside handleChunkedStream:", e.message || e);
+                    console.error("GET fallback request failed:", e.message || e);
                 }
             }
 

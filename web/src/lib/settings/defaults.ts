@@ -33,7 +33,7 @@ const defaultSettings: CobaltSettings = {
         allowH265: false,
         tiktokFullAudio: false,
         convertGif: true,
-        videoQuality: "1080",
+        videoQuality: "720",
         subtitleLang: "none",
         youtubeVideoCodec: "h264",
         youtubeVideoContainer: "auto",

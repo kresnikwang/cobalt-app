@@ -29,7 +29,7 @@
   let settings = $state({
     savePath: '',
     downloadMode: 'video',
-    videoQuality: '1080',
+    videoQuality: '720',
     audioFormat: 'best',
     clipboardMonitoring: true,
     maxParallelDownloads: 3
