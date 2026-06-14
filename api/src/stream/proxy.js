@@ -6,6 +6,14 @@ import { getHeaders, closeRequest, closeResponse, pipe } from "./shared.js";
 
 const defaultAgent = new Agent();
 
+function prepareHeaders(streamInfo) {
+    return {
+        ...getHeaders(streamInfo.service),
+        ...(streamInfo.headers ? Object.fromEntries(streamInfo.headers) : {}),
+        Range: streamInfo.range
+    };
+}
+
 export default async function (streamInfo, res) {
     const abortController = new AbortController();
     const shutdown = () => (
@@ -19,10 +27,7 @@ export default async function (streamInfo, res) {
         res.setHeader('Content-disposition', contentDisposition(streamInfo.filename));
 
         const { body: stream, headers, statusCode } = await request(streamInfo.urls, {
-            headers: {
-                ...getHeaders(streamInfo.service),
-                Range: streamInfo.range
-            },
+            headers: prepareHeaders(streamInfo),
             signal: abortController.signal,
             maxRedirections: 16,
             dispatcher: defaultAgent,

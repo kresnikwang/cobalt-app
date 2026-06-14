@@ -3,6 +3,11 @@ import { resolveRedirectingURL } from "../url.js";
 
 // TO-DO: higher quality downloads (currently requires an account)
 
+const comHeaders = {
+    "user-agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+    "referer": "https://www.bilibili.com"
+};
+
 function getBest(content) {
     return content?.filter(v => v.baseUrl || v.url)
                 .map(v => (v.baseUrl = v.baseUrl || v.url, v))
@@ -21,9 +26,7 @@ async function com_download(id, partId) {
     try {
         const metadataUrl = `https://api.bilibili.com/x/web-interface/view?bvid=${id}`;
         const metadataRes = await fetch(metadataUrl, {
-            headers: {
-                "user-agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
-            }
+            headers: comHeaders
         });
         if (!metadataRes.ok) {
             return { error: "fetch.fail" };
@@ -49,10 +52,7 @@ async function com_download(id, partId) {
         
         const playurl = `https://api.bilibili.com/x/player/playurl?avid=${aid}&cid=${cid}&qn=80&type=&otype=json&fourk=1&fnver=0&fnval=4048`;
         const playRes = await fetch(playurl, {
-            headers: {
-                "user-agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
-                "referer": "https://www.bilibili.com"
-            }
+            headers: comHeaders
         });
         if (!playRes.ok) {
             return { error: "fetch.fail" };
@@ -84,6 +84,7 @@ async function com_download(id, partId) {
         
         return {
             urls: [video.baseUrl, audio.baseUrl],
+            headers: comHeaders,
             audioFilename: `${filenameBase}_audio`,
             filename: `${filenameBase}_${video.width}x${video.height}.mp4`,
         };

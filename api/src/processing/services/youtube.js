@@ -263,6 +263,16 @@ export default async function (o) {
     try {
         info = await yt.getBasicInfo(o.id, { client: innertubeClient });
     } catch (e) {
+        console.error("YouTube getBasicInfo failed:", {
+            id: o.id,
+            innertubeClient,
+            useHLS,
+            useSession,
+            message: e?.message,
+            info: e?.info,
+            stack: e?.stack,
+        });
+
         if (e?.info) {
             let errorInfo;
             try { errorInfo = JSON.parse(e?.info); } catch {}

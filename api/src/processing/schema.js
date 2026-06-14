@@ -44,6 +44,12 @@ export const apiSchema = z.object({
                      .regex(/^[0-9a-zA-Z\-]+$/)
                      .optional(),
 
+    innertubeClient: z.string()
+                     .min(2)
+                     .max(32)
+                     .regex(/^[0-9A-Z_]+$/)
+                     .optional(),
+
     subtitleLang: z.string()
                      .min(2)
                      .max(8)

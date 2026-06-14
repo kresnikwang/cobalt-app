@@ -120,6 +120,7 @@ export default async function({ host, patternMatch, params, authType }) {
                     isAudioMuted,
                     dubLang: params.youtubeDubLang,
                     youtubeHLS,
+                    innertubeClient: params.innertubeClient,
                     subtitleLang,
                 }
 

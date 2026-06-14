@@ -3,10 +3,30 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import electron from 'vite-plugin-electron';
 import renderer from 'vite-plugin-electron-renderer';
 import path from 'path';
+import fs from 'fs';
+
+function copyPreload() {
+  const src = path.resolve(__dirname, 'src/preload/index.cjs');
+  const dest = path.resolve(__dirname, 'dist-electron/preload/index.cjs');
+
+  const copy = () => {
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(src, dest);
+  };
+
+  return {
+    name: 'copy-electron-preload',
+    buildStart: copy,
+    configureServer() {
+      copy();
+    }
+  };
+}
 
 export default defineConfig({
   base: './',
   plugins: [
+    copyPreload(),
     svelte(),
     electron([
       {
@@ -21,28 +41,6 @@ export default defineConfig({
                 // bundle workspace packages that electron-builder can't find in asar
                 if (id === '@imput/version-info') return false;
                 return !id.startsWith('.') && !path.isAbsolute(id);
-              }
-            }
-          }
-        }
-      },
-      {
-        entry: 'src/preload/index.ts',
-        onstart(options) {
-          options.reload();
-        },
-        vite: {
-          build: {
-            outDir: 'dist-electron/preload',
-            lib: {
-              entry: 'src/preload/index.ts',
-              formats: ['cjs'],
-              fileName: () => 'index.js'
-            },
-            rollupOptions: {
-              external: ['electron'],
-              output: {
-                format: 'cjs'
               }
             }
           }

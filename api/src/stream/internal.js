@@ -38,8 +38,10 @@ function prepareHeaders(streamInfo, extra = {}) {
 }
 
 async function* readChunks(streamInfo, size) {
-    let read = 0n, chunksSinceTransplant = 0;
+    let read = 0n;
     const chunkSize = BigInt(8e6);
+    let transplantRetries = 0;
+    const maxTransplantRetries = 2;
 
     while (read < size) {
         if (streamInfo.controller.signal.aborted) {
@@ -48,9 +50,10 @@ async function* readChunks(streamInfo, size) {
 
         let chunk;
         try {
+            const rangeEnd = min(read + chunkSize - 1n, size - 1n);
             chunk = await request(streamInfo.url, {
                 headers: prepareHeaders(streamInfo, {
-                    Range: `bytes=${read}-${read + chunkSize}`
+                    Range: `bytes=${read}-${rangeEnd}`
                 }),
                 dispatcher: streamInfo.dispatcher,
                 signal: streamInfo.controller.signal,
@@ -61,30 +64,44 @@ async function* readChunks(streamInfo, size) {
         }
 
         if (chunk.statusCode !== 200 && chunk.statusCode !== 206) {
-            console.error(`readChunks: HTTP ${chunk.statusCode} for range ${read}-${read + chunkSize}`);
+            console.error(`readChunks: HTTP ${chunk.statusCode} for range starting at ${read}`);
         }
 
-        if (chunk.statusCode === 403 && chunksSinceTransplant >= 1 && streamInfo.transplant) {
-            chunksSinceTransplant = 0;
+        if (chunk.statusCode === 403 && streamInfo.transplant) {
+            if (transplantRetries >= maxTransplantRetries) {
+                throw new Error("media chunk remained forbidden after url refresh");
+            }
+            transplantRetries++;
             try {
                 await streamInfo.transplant(streamInfo.dispatcher);
                 continue;
             } catch {}
         }
 
-        chunksSinceTransplant++;
+        if (chunk.statusCode !== 200 && chunk.statusCode !== 206) {
+            throw new Error(`failed to fetch media chunk: HTTP ${chunk.statusCode}`);
+        }
 
-        const expected = min(chunkSize, size - read);
-        const received = BigInt(chunk.headers['content-length']);
+        let received = BigInt(chunk.headers['content-length'] || 0);
+        let streamed = 0n;
 
-        if (received < expected / 2n) {
-            closeRequest(streamInfo.controller);
+        if (chunk.statusCode === 200 && read > 0n) {
+            throw new Error("range request returned full response after partial read");
         }
 
         for await (const data of chunk.body) {
+            streamed += BigInt(data.length);
             yield data;
         }
 
+        if (received === 0n) {
+            received = streamed;
+        }
+        if (received === 0n) {
+            throw new Error("media chunk returned no data");
+        }
+
+        transplantRetries = 0;
         read += received;
     }
 }

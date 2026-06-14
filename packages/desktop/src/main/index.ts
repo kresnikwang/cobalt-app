@@ -126,6 +126,33 @@ function streamClose(ws: fs.WriteStream): Promise<void> {
   });
 }
 
+function isYouTubeUrl(rawUrl: string): boolean {
+  try {
+    const { hostname } = new URL(rawUrl);
+    return hostname === 'youtu.be' || hostname.endsWith('.youtube.com') || hostname === 'youtube.com';
+  } catch {
+    return false;
+  }
+}
+
+async function requestCobalt(payload: Record<string, any>, signal: AbortSignal) {
+  const apiRes = await fetch(COBALT_URL, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal,
+  });
+
+  const result = await apiRes.json().catch(() => ({}));
+  return { apiRes, result };
+}
+
+function getCobaltError(result: any, status: number): string {
+  const errCode = result?.error?.code ?? '';
+  const errText = result?.text ?? '';
+  return errText || errCode || `HTTP ${status}`;
+}
+
 // -----------------------------------------------------------
 // Start local Cobalt API server
 // -----------------------------------------------------------
@@ -148,7 +175,7 @@ async function startCobaltServer() {
   process.env.API_LISTEN_ADDRESS = '127.0.0.1';
   process.env.YOUTUBE_ALLOW_BETTER_AUDIO = '1';
   process.env.FORCE_LOCAL_PROCESSING = 'never';
-  process.env.ENABLE_DEPRECATED_YOUTUBE_HLS = 'never';
+  process.env.ENABLE_DEPRECATED_YOUTUBE_HLS = 'always';
 
   const appPath = app.getAppPath();
   if (app.isPackaged && appPath.endsWith('app.asar')) {
@@ -209,7 +236,7 @@ function createWindow() {
     visualEffectState: 'active',
     backgroundColor: '#00000000',
     webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
+      preload: path.join(__dirname, '../preload/index.cjs'),
       sandbox: true,
       contextIsolation: true,
     }
@@ -439,24 +466,32 @@ async function runDownloadTask(task: DownloadTask, settings: Settings) {
       audioFormat: settings.audioFormat,
       filenameStyle: 'pretty',
       youtubeVideoCodec: 'h264',
+      youtubeHLS: true,
       youtubeBetterAudio: true,
     };
 
-    const apiRes = await fetch(COBALT_URL, {
-      method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(cobaltPayload),
-      signal: controller.signal,
-    });
+    let { apiRes, result } = await requestCobalt(cobaltPayload, controller.signal);
 
-    // Parse response body regardless of status
-    const result = await apiRes.json().catch(() => ({}));
+    if ((!apiRes.ok || result.status === 'error') && isYouTubeUrl(task.url) && cobaltPayload.youtubeHLS) {
+      const hlsError = getCobaltError(result, apiRes.status);
+      console.warn(`YouTube HLS request failed (${hlsError}); retrying without HLS using WEB_EMBEDDED client.`);
+
+      const fallbackPayload = {
+        ...cobaltPayload,
+        youtubeHLS: false,
+        innertubeClient: 'WEB_EMBEDDED',
+      };
+      ({ apiRes, result } = await requestCobalt(fallbackPayload, controller.signal));
+
+      if (!apiRes.ok || result.status === 'error') {
+        const fallbackError = getCobaltError(result, apiRes.status);
+        console.warn(`YouTube non-HLS fallback failed (${fallbackError}).`);
+      }
+    }
 
     if (!apiRes.ok || result.status === 'error') {
       // Bug fix #6: proper error path from Cobalt schema
-      const errCode  = result?.error?.code  ?? '';
-      const errText  = result?.text         ?? '';
-      throw new Error(errText || errCode || `HTTP ${apiRes.status}`);
+      throw new Error(getCobaltError(result, apiRes.status));
     }
 
     // ── 2. Resolve download URL + filename ────────────────
