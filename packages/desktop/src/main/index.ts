@@ -4,6 +4,11 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import Module from 'module';
 
+// Fix V8 "Failed to reserve virtual memory for CodeRange" crash
+// on macOS 26 with Apple Silicon (64 KB pages reduce addressable VM space).
+// Must be called synchronously, BEFORE any app API is used.
+app.commandLine.appendSwitch('js-flags', '--no-code-range-reservation');
+
 // Redirect isolated-vm and ffmpeg-static to app.asar.unpacked in production
 const originalResolve = (Module as any)._resolveFilename;
 try {
