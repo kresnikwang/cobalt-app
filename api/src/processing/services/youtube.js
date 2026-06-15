@@ -1,5 +1,5 @@
 import HLS from "hls-parser";
-import ivm from "isolated-vm";
+import vm from "node:vm";
 
 import { fetch, Request } from "undici";
 import { Innertube, Platform, Session } from "youtubei.js";
@@ -10,16 +10,9 @@ import { getYouTubeSession } from "../helpers/youtube-session.js";
 
 // https://github.com/LuanRT/YouTube.js/pull/1052
 Platform.shim.eval = async (data) => {
-  const isolate = new ivm.Isolate();
-
-  try {
-    const context = await isolate.createContext();
-    const code = `(() => { ${data.output} })()`;
-    const script = await isolate.compileScript(code);
-    return await script.run(context, { copy: true, timeout: 5000 });
-  } finally {
-    isolate.dispose();
-  }
+  const context = vm.createContext({});
+  const code = `(() => { ${data.output} })()`;
+  return vm.runInContext(code, context, { timeout: 5000 });
 }
 
 const PLAYER_REFRESH_PERIOD = 1000 * 60 * 15; // ms

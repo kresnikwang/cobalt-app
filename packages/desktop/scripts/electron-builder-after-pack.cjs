@@ -96,4 +96,19 @@ exports.default = async function (context) {
   }
 
   console.log("[afterPack] Done.");
+
+  // ── 5. macOS 26 V8 CodeRange crash fix ──
+  // macOS 26 with 64KB pages causes V8 to fail reserving 4TB virtual
+  // memory for pointer compression. We inject --no-code-range-reservation
+  // into Info.plist's LSEnvironment so Launch Services passes it before V8 init.
+  try {
+    const infoPlistPath = join(appOutDir, "Cobalt.app", "Contents", "Info.plist");
+    execSync(
+      `plutil -replace LSEnvironment -json '{"ELECTRON_EXTRA_LAUNCH_ARGS":"--js-flags=--no-code-range-reservation"}' "${infoPlistPath}"`,
+      { stdio: "pipe" }
+    );
+    console.log("[afterPack] V8 CodeRange fix: ELECTRON_EXTRA_LAUNCH_ARGS injected via plutil");
+  } catch (e) {
+    console.warn("[afterPack] V8 fix warning:", e.message);
+  }
 };

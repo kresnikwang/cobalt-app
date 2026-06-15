@@ -33,6 +33,7 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
     "@tabler/icons-svelte": "^3.6.0",
     "electron": "^31.7.7",
